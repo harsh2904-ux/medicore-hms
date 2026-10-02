@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Printer, Download, X, Stethoscope, Heart, Activity, QrCode, ShieldCheck } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { QrCodeView } from '../common/QrCodeView';
@@ -45,6 +46,17 @@ export const PrintPrescriptionModal: React.FC<PrintPrescriptionModalProps> = ({
   onClose,
   data,
 }) => {
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
   if (!isOpen || !data) return null;
 
   const handlePrint = () => {
@@ -53,9 +65,14 @@ export const PrintPrescriptionModal: React.FC<PrintPrescriptionModalProps> = ({
 
   const defaultDate = data.date || new Date().toISOString().split('T')[0];
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-4xl bg-white text-gray-900 rounded-2xl shadow-2xl overflow-hidden my-8 animate-in fade-in zoom-in-95">
+  const modalNode = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto">
+      {/* High-Opacity Screen-Wide Backdrop */}
+      <div 
+        onClick={onClose}
+        className="fixed inset-0 bg-black/85 backdrop-blur-md transition-opacity duration-200"
+      />
+      <div className="relative w-full max-w-4xl bg-white text-gray-900 rounded-2xl shadow-2xl overflow-hidden my-8 z-10 animate-in fade-in zoom-in-95">
         
         {/* Top Control Bar (Hidden on print) */}
         <div className="no-print flex items-center justify-between px-6 py-4 bg-gray-900 text-white border-b border-gray-800">
@@ -291,4 +308,8 @@ export const PrintPrescriptionModal: React.FC<PrintPrescriptionModalProps> = ({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined'
+    ? createPortal(modalNode, document.body)
+    : modalNode;
 };

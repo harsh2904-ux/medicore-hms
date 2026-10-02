@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   QrCode, 
   Printer, 
@@ -23,6 +24,18 @@ export const ReceptionQrStandModal: React.FC<ReceptionQrStandModalProps> = ({
   isOpen,
   onClose
 }) => {
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
   // Determine best default URL for phone scanning
   // If running on localhost, use the machine's local Wi-Fi IP so phones on the same Wi-Fi can open it!
   const getInitialUrl = () => {
@@ -54,9 +67,15 @@ export const ReceptionQrStandModal: React.FC<ReceptionQrStandModalProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto">
-      <div className="relative w-full max-w-xl bg-[#090D16] border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col my-auto">
+  const modalNode = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+      {/* High-Opacity Screen-Wide Backdrop covering entire viewport */}
+      <div 
+        onClick={onClose}
+        className="fixed inset-0 bg-black/85 backdrop-blur-md transition-opacity duration-200"
+      />
+
+      <div className="relative w-full max-w-xl bg-[#090D16] border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col my-auto z-10 animate-in fade-in zoom-in-95">
         {/* Modal Top Bar */}
         <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
           <div className="flex items-center gap-2.5">
@@ -216,4 +235,8 @@ export const ReceptionQrStandModal: React.FC<ReceptionQrStandModalProps> = ({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined'
+    ? createPortal(modalNode, document.body)
+    : modalNode;
 };

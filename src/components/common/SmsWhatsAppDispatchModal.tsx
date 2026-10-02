@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   MessageSquare, 
   Send, 
@@ -16,8 +17,7 @@ import {
 import { 
   communicationService, 
   MessageLog, 
-  openWhatsAppDirect, 
-  getWhatsAppShareUrl 
+  openWhatsAppDirect 
 } from '../../services/communicationService';
 
 interface SmsWhatsAppDispatchModalProps {
@@ -44,10 +44,17 @@ export const SmsWhatsAppDispatchModal: React.FC<SmsWhatsAppDispatchModalProps> =
   const [isSending, setIsSending] = useState(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
+  // Lock body scroll when modal is active
   useEffect(() => {
     if (isOpen) {
+      document.body.style.overflow = 'hidden';
       setLogs(communicationService.getLogs());
+    } else {
+      document.body.style.overflow = 'unset';
     }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -81,11 +88,17 @@ export const SmsWhatsAppDispatchModal: React.FC<SmsWhatsAppDispatchModalProps> =
     openWhatsAppDirect(recipientPhone, messageText);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="relative w-full max-w-4xl bg-[#0B0F17] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+  const modalNode = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+      {/* Screen-Wide High-Opacity Backdrop */}
+      <div 
+        onClick={onClose}
+        className="fixed inset-0 bg-black/85 backdrop-blur-md transition-opacity duration-200"
+      />
+
+      <div className="relative w-full max-w-4xl bg-[#0B0F17] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] z-10 my-auto animate-in fade-in zoom-in-95">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-emerald-500/10 via-transparent to-blue-500/10">
+        <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-emerald-500/10 via-transparent to-blue-500/10 shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400">
               <MessageSquare className="w-5 h-5" />
@@ -112,7 +125,7 @@ export const SmsWhatsAppDispatchModal: React.FC<SmsWhatsAppDispatchModalProps> =
         </div>
 
         {successToast && (
-          <div className="mx-6 mt-4 p-3 bg-emerald-500/20 border border-emerald-500/30 rounded-xl text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in">
+          <div className="mx-6 mt-4 p-3 bg-emerald-500/20 border border-emerald-500/30 rounded-xl text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in shrink-0">
             <CheckCheck className="w-4 h-4 text-emerald-400" />
             <span>{successToast}</span>
           </div>
@@ -120,8 +133,8 @@ export const SmsWhatsAppDispatchModal: React.FC<SmsWhatsAppDispatchModalProps> =
 
         <div className="grid grid-cols-1 md:grid-cols-12 flex-1 overflow-hidden">
           {/* Dispatch Message Form (Left 5 Cols) */}
-          <form onSubmit={handleSend} className="md:col-span-5 p-6 border-b md:border-b-0 md:border-r border-white/10 flex flex-col gap-4 bg-white/[0.01]">
-            <div className="grid grid-cols-2 gap-2 p-1 bg-white/5 rounded-xl border border-white/10">
+          <form onSubmit={handleSend} className="md:col-span-5 p-6 border-b md:border-b-0 md:border-r border-white/10 flex flex-col gap-4 bg-white/[0.01] overflow-y-auto">
+            <div className="grid grid-cols-2 gap-2 p-1 bg-white/5 rounded-xl border border-white/10 shrink-0">
               <button
                 type="button"
                 onClick={() => setChannel('WHATSAPP')}
@@ -178,7 +191,7 @@ export const SmsWhatsAppDispatchModal: React.FC<SmsWhatsAppDispatchModalProps> =
               />
             </div>
 
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col min-h-[140px]">
               <div className="flex items-center justify-between mb-1">
                 <label className="text-xs text-white/60">Message Template / Body</label>
                 <button
@@ -216,7 +229,7 @@ export const SmsWhatsAppDispatchModal: React.FC<SmsWhatsAppDispatchModalProps> =
               </label>
             )}
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 pt-1">
               <button
                 type="submit"
                 disabled={isSending}
@@ -246,7 +259,7 @@ export const SmsWhatsAppDispatchModal: React.FC<SmsWhatsAppDispatchModalProps> =
 
           {/* Outgoing Message Logs (Right 7 Cols) */}
           <div className="md:col-span-7 p-6 flex flex-col gap-4 overflow-y-auto bg-black/20">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between shrink-0">
               <h4 className="text-xs font-semibold text-white/70 uppercase tracking-wider flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 text-white/40" />
                 Gateway Message Logs ({logs.length})
@@ -318,4 +331,8 @@ export const SmsWhatsAppDispatchModal: React.FC<SmsWhatsAppDispatchModalProps> =
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined'
+    ? createPortal(modalNode, document.body)
+    : modalNode;
 };

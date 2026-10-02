@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   ShieldCheck, 
   CheckCircle2, 
@@ -40,6 +41,17 @@ export const AbhaVerificationModal: React.FC<AbhaVerificationModalProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [generatedAbhaNumber, setGeneratedAbhaNumber] = useState('');
   const [generatedAbhaAddress, setGeneratedAbhaAddress] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -87,9 +99,14 @@ export const AbhaVerificationModal: React.FC<AbhaVerificationModalProps> = ({
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="relative w-full max-w-lg bg-[#0D121F] border border-orange-500/20 rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95">
+  const modalNode = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto">
+      {/* High-Opacity Screen-Wide Backdrop */}
+      <div 
+        onClick={onClose}
+        className="fixed inset-0 bg-black/85 backdrop-blur-md transition-opacity duration-200"
+      />
+      <div className="relative w-full max-w-lg bg-[#0D121F] border border-orange-500/20 rounded-3xl shadow-2xl overflow-hidden z-10 animate-in fade-in zoom-in-95 my-auto">
         {/* Top Header with ABDM Trilateral Accent */}
         <div className="h-1.5 w-full bg-gradient-to-r from-orange-500 via-white to-emerald-500" />
 
@@ -304,4 +321,8 @@ export const AbhaVerificationModal: React.FC<AbhaVerificationModalProps> = ({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined'
+    ? createPortal(modalNode, document.body)
+    : modalNode;
 };

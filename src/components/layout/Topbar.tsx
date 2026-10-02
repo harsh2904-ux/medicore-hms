@@ -49,7 +49,8 @@ export const Topbar: React.FC<TopbarProps> = ({ onOpenSidebar }) => {
   };
 
   return (
-    <header className="sticky top-0 z-30 h-16 bg-[#05070A]/85 backdrop-blur-xl border-b border-white/[0.08] px-4 sm:px-6 flex items-center justify-between gap-4">
+    <>
+      <header className="sticky top-0 z-30 h-16 bg-[#05070A]/85 backdrop-blur-xl border-b border-white/[0.08] px-4 sm:px-6 flex items-center justify-between gap-4">
       {/* Left: Mobile Toggle & Breadcrumbs */}
       <div className="flex items-center gap-3 min-w-0">
         <button
@@ -270,18 +271,19 @@ export const Topbar: React.FC<TopbarProps> = ({ onOpenSidebar }) => {
           )}
         </div>
       </div>
-
-      {/* Reception Counter QR Stand Modal */}
-      <ReceptionQrStandModal
-        isOpen={showQrStand}
-        onClose={() => setShowQrStand(false)}
-      />
-
-      {/* SMS & WhatsApp Gateway Dispatcher Modal */}
-      <SmsWhatsAppDispatchModal
-        isOpen={showSmsModal}
-        onClose={() => setShowSmsModal(false)}
-      />
     </header>
-  );
+
+    {/* Reception Counter QR Stand Modal */}
+    <ReceptionQrStandModal
+      isOpen={showQrStand}
+      onClose={() => setShowQrStand(false)}
+    />
+
+    {/* SMS & WhatsApp Gateway Dispatcher Modal */}
+    <SmsWhatsAppDispatchModal
+      isOpen={showSmsModal}
+      onClose={() => setShowSmsModal(false)}
+    />
+  </>
+);
 };

@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 export interface ModalProps {
@@ -49,22 +50,22 @@ export const Modal: React.FC<ModalProps> = ({
     '5xl': 'max-w-5xl',
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-      {/* Backdrop */}
+  const modalNode = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+      {/* High-Opacity Backdrop */}
       <div
         onClick={onClose}
-        className="fixed inset-0 bg-black/75 backdrop-blur-md transition-opacity duration-200"
+        className="fixed inset-0 bg-black/85 backdrop-blur-md transition-opacity duration-200"
       />
 
       {/* Modal Dialog */}
       <div
         role="dialog"
         aria-modal="true"
-        className={`relative w-full ${maxWidthClasses[maxWidth]} bg-[#0F131A] border border-white/[0.12] rounded-2xl shadow-glass overflow-hidden z-10 flex flex-col my-auto max-h-[90vh]`}
+        className={`relative w-full ${maxWidthClasses[maxWidth]} bg-[#0F131A] border border-white/[0.12] rounded-2xl shadow-2xl overflow-hidden z-10 flex flex-col my-auto max-h-[90vh]`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.08] bg-[#141A24]/60">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.08] bg-[#141A24]/90 shrink-0">
           <div>
             <h3 className="text-base font-semibold text-text-primary">{title}</h3>
             {subtitle && <p className="text-xs text-text-secondary mt-0.5">{subtitle}</p>}
@@ -83,11 +84,15 @@ export const Modal: React.FC<ModalProps> = ({
 
         {/* Footer */}
         {footer && (
-          <div className="px-6 py-3.5 border-t border-white/[0.08] bg-[#141A24]/40 flex items-center justify-end gap-3">
+          <div className="px-6 py-3.5 border-t border-white/[0.08] bg-[#141A24]/90 flex items-center justify-end gap-3 shrink-0">
             {footer}
           </div>
         )}
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined'
+    ? createPortal(modalNode, document.body)
+    : modalNode;
 };
