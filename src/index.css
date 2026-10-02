@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #05070A;
+  --background-secondary: #0A0D12;
+  --surface: #0F131A;
+  --surface-elevated: #141A24;
+  --surface-subtle: #18202C;
+  --glass: rgba(255, 255, 255, 0.055);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --border: rgba(255, 255, 255, 0.08);
+  --primary: #5B8CFF;
+  --secondary: #7C5CFF;
+  --success: #30D158;
+  --warning: #FFB547;
+  --danger: #FF5C70;
+  --info: #38BDF8;
+  --text-primary: #F5F7FA;
+  --text-secondary: #9AA4B2;
+  --text-muted: #687386;
+}
+
+body {
+  background-color: #05070A;
+  color: #F5F7FA;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+.bg-ambient-radial {
+  background: 
+    radial-gradient(circle at 10% 10%, rgba(91, 140, 255, 0.12), transparent 30%),
+    radial-gradient(circle at 90% 80%, rgba(124, 92, 255, 0.08), transparent 30%),
+    #05070A;
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.055);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+.glass-panel-subtle {
+  background: rgba(255, 255, 255, 0.035);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Subtle clean scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* Print styling */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .printable-document, .printable-document * {
+    visibility: visible;
+  }
+  .printable-document {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 24px !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+}
