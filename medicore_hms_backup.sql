@@ -2032,9 +2032,11 @@ COPY public.medicines (id, code, name, generic_name, category, dosage_form, stre
 --
 
 COPY public.notifications (id, user_id, title, message, type, is_read, created_at) FROM stdin;
-1	1	System Initialized	MediCore HMS version 1.0 backend initialized successfully.	INFO	f	2026-09-30 23:27:02.767995+05:30
-2	2	New Lab Results Ready	Lipid panel results ready for patient Eleanor Vance (MC-2026-001).	SUCCESS	f	2026-09-30 23:27:02.767995+05:30
-3	1	Low Stock Alert	N95 Respirator Masks are below reorder threshold (18 remaining).	WARNING	f	2026-09-30 23:27:02.767995+05:30
+1	1	System Initialized	MediCore HMS version 1.0 backend initialized successfully.	INFO	t	2026-09-30 23:27:02.767995+05:30
+2	2	New Lab Results Ready	Lipid panel results ready for patient Eleanor Vance (MC-2026-001).	SUCCESS	t	2026-09-30 23:27:02.767995+05:30
+3	1	Low Stock Alert	N95 Respirator Masks are below reorder threshold (18 remaining).	WARNING	t	2026-09-30 23:27:02.767995+05:30
+4	\N	fggf	fsgsr	WARNING	t	2026-10-01 13:55:03.55922+05:30
+5	\N	k	l;ljg	WARNING	t	2026-10-01 13:56:38.156228+05:30
 \.
 
 
@@ -2221,9 +2223,9 @@ COPY public.users (id, hospital_id, branch_id, username, email, password_hash, f
 2	1	1	doctor	doctor@medicore.com	$2a$10$6Ty46CWNe9Dzq1OwVUYBjOpayfYzS9uv2UHF8T5iydpxRsOAE10Te	Sarah	Jenkins	+1 (555) 010-0002	ACTIVE	\N	2026-09-30 23:27:02.767995+05:30	2026-09-30 23:27:02.767995+05:30
 3	1	1	nurse	nurse@medicore.com	$2a$10$6Ty46CWNe9Dzq1OwVUYBjOpayfYzS9uv2UHF8T5iydpxRsOAE10Te	Elena	Vance	+1 (555) 010-0003	ACTIVE	\N	2026-09-30 23:27:02.767995+05:30	2026-09-30 23:27:02.767995+05:30
 4	1	1	reception	reception@medicore.com	$2a$10$6Ty46CWNe9Dzq1OwVUYBjOpayfYzS9uv2UHF8T5iydpxRsOAE10Te	Michael	Scott	+1 (555) 010-0004	ACTIVE	\N	2026-09-30 23:27:02.767995+05:30	2026-09-30 23:27:02.767995+05:30
-7	1	1	harshmuppawar011	harshmuppawar011@gmail.com	$2a$10$FEFEg7b5oKXpWYu8sFjOWuN4hQ7dsKn.DLTZtlWsaEaBCdULCQ72G	HARSH	MUPPAWAR	+919764478380	ACTIVE	2026-10-01 13:28:44.141818+05:30	2026-10-01 13:19:23.721164+05:30	2026-10-01 13:28:44.142813+05:30
-1	1	1	admin	admin@medicore.com	$2a$10$6Ty46CWNe9Dzq1OwVUYBjOpayfYzS9uv2UHF8T5iydpxRsOAE10Te	Alexander	Wright	+1 (555) 010-0001	ACTIVE	2026-10-01 13:39:31.806686+05:30	2026-09-30 23:27:02.767995+05:30	2026-10-01 13:39:31.806686+05:30
+7	1	1	harshmuppawar011	harshmuppawar011@gmail.com	$2a$10$FEFEg7b5oKXpWYu8sFjOWuN4hQ7dsKn.DLTZtlWsaEaBCdULCQ72G	HARSH	MUPPAWAR	+919764478380	ACTIVE	2026-10-01 14:02:05.118675+05:30	2026-10-01 13:19:23.721164+05:30	2026-10-01 14:02:05.17774+05:30
 5	1	1	johnwatson	john.watson@medicore.health	$2a$10$65cMEdhBx6nLdzSx3JXPMuDCKlC82R/3E/1W/GkvPuWO7f6T.5Vl6	Dr. John	Watson	+1 (555) 777-6655	ACTIVE	2026-10-01 12:31:25.123335+05:30	2026-10-01 12:31:24.897515+05:30	2026-10-01 12:31:25.125903+05:30
+1	1	1	admin	admin@medicore.com	$2a$10$6Ty46CWNe9Dzq1OwVUYBjOpayfYzS9uv2UHF8T5iydpxRsOAE10Te	Alexander	Wright	+1 (555) 010-0001	ACTIVE	2026-10-02 20:41:42.400861+05:30	2026-09-30 23:27:02.767995+05:30	2026-10-02 20:41:42.400861+05:30
 6	1	1	sarahconnor	sarah.connor@medicore.org	$2a$10$dA8Hj9Y23JYluiY52P64Du/WG20WrsLZ2dJSmvMZFJ/spx5SrBVyK	Sarah	Connor	+1-555-0199	ACTIVE	2026-10-01 12:47:03.535494+05:30	2026-10-01 12:44:31.281019+05:30	2026-10-01 12:47:03.535494+05:30
 \.
 
@@ -2393,7 +2395,7 @@ SELECT pg_catalog.setval('public.medicines_id_seq', 5, true);
 -- Name: notifications_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.notifications_id_seq', 3, true);
+SELECT pg_catalog.setval('public.notifications_id_seq', 5, true);
 
 
 --

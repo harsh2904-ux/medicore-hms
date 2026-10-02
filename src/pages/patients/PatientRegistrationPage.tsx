@@ -16,11 +16,14 @@ import {
   Shield,
   HeartHandshake,
   Stethoscope,
-  CreditCard,
   ArrowLeft,
   CheckCircle2,
-  Sparkles
+  Sparkles,
+  ShieldCheck,
+  Award,
+  CreditCard
 } from 'lucide-react';
+import { AbhaVerificationModal } from '../../components/common/AbhaVerificationModal';
 
 const patientSchema = z.object({
   firstName: z.string().min(2, 'First name must be at least 2 characters'),
@@ -54,11 +57,14 @@ export const PatientRegistrationPage: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useNotification();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showAbhaModal, setShowAbhaModal] = useState(false);
+  const [abhaVerified, setAbhaVerified] = useState(false);
 
   const {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<PatientFormData>({
     resolver: zodResolver(patientSchema),
@@ -312,12 +318,24 @@ export const PatientRegistrationPage: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Input
-              label="ABHA ID (Demo)"
-              {...register('abhaId')}
-              placeholder="91-4402-9812-3341"
-              helperText="Demo ABDM compliant health identifier"
-            />
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-medium text-text-secondary">ABHA ID (Ayushman Bharat)</label>
+                <button
+                  type="button"
+                  onClick={() => setShowAbhaModal(true)}
+                  className="text-[10px] text-orange-400 hover:text-orange-300 font-semibold flex items-center gap-1"
+                >
+                  <Award className="w-3 h-3" />
+                  {abhaVerified ? 'Verified ✓' : 'Aadhaar OTP Verify'}
+                </button>
+              </div>
+              <Input
+                {...register('abhaId')}
+                placeholder="91-4402-9812-3341"
+                helperText={abhaVerified ? '✓ Verified with NHA Gateway' : 'ABDM compliant 14-digit identifier'}
+              />
+            </div>
             <Select
               label="Government ID Type"
               options={[
@@ -468,6 +486,20 @@ export const PatientRegistrationPage: React.FC = () => {
           </div>
         </div>
       </form>
+
+      <AbhaVerificationModal
+        isOpen={showAbhaModal}
+        onClose={() => setShowAbhaModal(false)}
+        patientName={`${watch('firstName')} ${watch('lastName')}`.trim() || 'Patient'}
+        patientPhone={watch('phone')}
+        onSuccess={(result) => {
+          setAbhaVerified(true);
+          setValue('abhaId', result.abhaNumber);
+          setValue('govtIdType', 'Aadhaar');
+          setValue('govtIdNumber', `XXXXXXXX${result.linkedAadhaarLast4}`);
+          showToast(`ABHA ID ${result.abhaNumber} linked successfully!`, 'success', 'ABHA Verified');
+        }}
+      />
     </div>
   );
 };

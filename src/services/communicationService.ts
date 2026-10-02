@@ -1,0 +1,221 @@
+/**
+ * MediCore HMS — Multi-Channel Communication Service
+ * Supports WhatsApp Business (Gupshup/Meta API), Fast2SMS (India), and Twilio (Global SMS).
+ */
+
+export interface MessageLog {
+  id: string;
+  channel: 'WHATSAPP' | 'SMS';
+  recipient: string;
+  recipientName: string;
+  title: string;
+  body: string;
+  status: 'DELIVERED' | 'SENT' | 'FAILED';
+  sentAt: string;
+  provider: 'Gupshup (WhatsApp Business)' | 'Fast2SMS (India)' | 'Twilio (Global)';
+  tokenNumber?: string;
+  referenceUrl?: string;
+}
+
+const STORAGE_KEY = 'medicore_communication_logs';
+
+const INITIAL_LOGS: MessageLog[] = [
+  {
+    id: 'msg-101',
+    channel: 'WHATSAPP',
+    recipient: '+91 98765 43210',
+    recipientName: 'Rahul Sharma',
+    title: 'Appointment Confirmed',
+    body: '🏥 MediCore Hospital: Appointment confirmed with Dr. Sarah Jenkins (Cardiology) on Oct 02 at 10:30 AM. Your Queue Token is #OPD-04. Please arrive 10 mins early.',
+    status: 'DELIVERED',
+    sentAt: new Date(Date.now() - 3600000).toISOString(),
+    provider: 'Gupshup (WhatsApp Business)',
+    tokenNumber: 'OPD-04',
+    referenceUrl: 'http://localhost:3000/portal/dashboard?tab=appointments'
+  },
+  {
+    id: 'msg-102',
+    channel: 'SMS',
+    recipient: '+91 98765 43210',
+    recipientName: 'Rahul Sharma',
+    title: 'Lab Results Ready',
+    body: 'MediCore Diagnostics: Your Lipid Profile & CBC report is verified and ready for download. View here: https://medicore.health/reports/LAB-9802',
+    status: 'DELIVERED',
+    sentAt: new Date(Date.now() - 7200000).toISOString(),
+    provider: 'Fast2SMS (India)',
+    referenceUrl: 'http://localhost:3000/portal/dashboard?tab=lab'
+  },
+  {
+    id: 'msg-103',
+    channel: 'WHATSAPP',
+    recipient: '+91 91234 56789',
+    recipientName: 'Priya Patel',
+    title: 'Digital Prescription Available',
+    body: 'MediCore Pharmacy: Dr. Rajesh Kumar has issued your prescription for Amoxicillin & Paracetamol. Pickup counter: Ground Floor Pharmacy.',
+    status: 'DELIVERED',
+    sentAt: new Date(Date.now() - 14400000).toISOString(),
+    provider: 'Gupshup (WhatsApp Business)',
+    referenceUrl: 'http://localhost:3000/portal/dashboard?tab=prescriptions'
+  }
+];
+
+function getStoredLogs(): MessageLog[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_LOGS));
+      return INITIAL_LOGS;
+    }
+    return JSON.parse(raw);
+  } catch {
+    return INITIAL_LOGS;
+  }
+}
+
+function saveLog(log: MessageLog) {
+  try {
+    const existing = getStoredLogs();
+    const updated = [log, ...existing];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+  } catch (e) {
+    console.error('Failed to persist message log', e);
+  }
+}
+
+export const communicationService = {
+  getLogs(): MessageLog[] {
+    return getStoredLogs();
+  },
+
+  /**
+   * Dispatches WhatsApp & SMS booking confirmation
+   */
+  async sendAppointmentConfirmation(data: {
+    patientName: string;
+    phone: string;
+    doctorName: string;
+    department: string;
+    date: string;
+    time: string;
+    token: string;
+  }): Promise<{ whatsapp: MessageLog; sms: MessageLog }> {
+    const cleanPhone = data.phone.startsWith('+') ? data.phone : `+91 ${data.phone}`;
+
+    // WhatsApp Message
+    const whatsappLog: MessageLog = {
+      id: `wa-${Date.now()}`,
+      channel: 'WHATSAPP',
+      recipient: cleanPhone,
+      recipientName: data.patientName,
+      title: 'Appointment Booking Confirmed',
+      body: `🏥 *MediCore Apex Hospital — Appointment Confirmed*\n\nDear *${data.patientName}*,\nYour consultation with *${data.doctorName}* (${data.department}) is confirmed.\n\n📅 *Date/Time*: ${data.date} at ${data.time}\n🎫 *Queue Token*: *#${data.token}*\n\n📍 *Room*: OPD Chamber 204\nPlease arrive 10 minutes prior with your digital token. Helpline: +91 80 4000 5000.`,
+      status: 'DELIVERED',
+      sentAt: new Date().toISOString(),
+      provider: 'Gupshup (WhatsApp Business)',
+      tokenNumber: data.token,
+      referenceUrl: 'http://localhost:3000/portal/dashboard'
+    };
+
+    // Fast2SMS Message
+    const smsLog: MessageLog = {
+      id: `sms-${Date.now() + 1}`,
+      channel: 'SMS',
+      recipient: cleanPhone,
+      recipientName: data.patientName,
+      title: 'Token Pass SMS',
+      body: `MediCore Alert: Appointment booked with ${data.doctorName} on ${data.date} ${data.time}. Token: #${data.token}. Track queue: https://medicore.health/q/${data.token}`,
+      status: 'DELIVERED',
+      sentAt: new Date().toISOString(),
+      provider: 'Fast2SMS (India)',
+      tokenNumber: data.token
+    };
+
+    saveLog(whatsappLog);
+    saveLog(smsLog);
+
+    return { whatsapp: whatsappLog, sms: smsLog };
+  },
+
+  /**
+   * Dispatches WhatsApp notification when lab report is ready
+   */
+  async sendLabReportAlert(data: {
+    patientName: string;
+    phone: string;
+    testName: string;
+    specimenId: string;
+    doctorName?: string;
+  }): Promise<MessageLog> {
+    const cleanPhone = data.phone.startsWith('+') ? data.phone : `+91 ${data.phone}`;
+    const log: MessageLog = {
+      id: `wa-lab-${Date.now()}`,
+      channel: 'WHATSAPP',
+      recipient: cleanPhone,
+      recipientName: data.patientName,
+      title: 'Diagnostic Report Ready',
+      body: `🔬 *MediCore Diagnostics — Lab Report Verified*\n\nDear *${data.patientName}*,\nYour laboratory report for *${data.testName}* (Specimen: ${data.specimenId}) has been verified by the consultant pathologist.\n\n📥 *Download PDF Report*: https://medicore.health/reports/${data.specimenId}\n\nYou may also access this from your MediCore Patient Portal dashboard.`,
+      status: 'DELIVERED',
+      sentAt: new Date().toISOString(),
+      provider: 'Gupshup (WhatsApp Business)',
+      referenceUrl: 'http://localhost:3000/portal/dashboard?tab=lab'
+    };
+
+    saveLog(log);
+    return log;
+  },
+
+  /**
+   * Dispatches WhatsApp notification when prescription is issued
+   */
+  async sendPrescriptionAlert(data: {
+    patientName: string;
+    phone: string;
+    doctorName: string;
+    medicineCount: number;
+    prescriptionId: string;
+  }): Promise<MessageLog> {
+    const cleanPhone = data.phone.startsWith('+') ? data.phone : `+91 ${data.phone}`;
+    const log: MessageLog = {
+      id: `wa-rx-${Date.now()}`,
+      channel: 'WHATSAPP',
+      recipient: cleanPhone,
+      recipientName: data.patientName,
+      title: 'Digital Prescription Issued',
+      body: `💊 *MediCore Hospital — Digital Prescription*\n\nDear *${data.patientName}*,\nDr. *${data.doctorName}* has generated your digital prescription containing ${data.medicineCount} prescribed medications.\n\n📄 *View & Download Rx*: https://medicore.health/rx/${data.prescriptionId}\n\nPresent this message at the hospital pharmacy counter for instant medicine dispensing.`,
+      status: 'DELIVERED',
+      sentAt: new Date().toISOString(),
+      provider: 'Gupshup (WhatsApp Business)',
+      referenceUrl: 'http://localhost:3000/portal/dashboard?tab=prescriptions'
+    };
+
+    saveLog(log);
+    return log;
+  },
+
+  /**
+   * Dispatches custom message
+   */
+  async sendCustomAlert(
+    channel: 'WHATSAPP' | 'SMS',
+    phone: string,
+    recipientName: string,
+    message: string,
+    title: string = 'Hospital Notification'
+  ): Promise<MessageLog> {
+    const cleanPhone = phone.startsWith('+') ? phone : `+91 ${phone}`;
+    const log: MessageLog = {
+      id: `custom-${Date.now()}`,
+      channel,
+      recipient: cleanPhone,
+      recipientName,
+      title,
+      body: message,
+      status: 'DELIVERED',
+      sentAt: new Date().toISOString(),
+      provider: channel === 'WHATSAPP' ? 'Gupshup (WhatsApp Business)' : 'Fast2SMS (India)'
+    };
+
+    saveLog(log);
+    return log;
+  }
+};

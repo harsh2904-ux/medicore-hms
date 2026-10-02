@@ -13,6 +13,7 @@ import { RegisterPage } from './pages/auth/RegisterPage';
 import { PatientPortalLoginPage } from './pages/portal/PatientPortalLoginPage';
 import { PatientPortalRegisterPage } from './pages/portal/PatientPortalRegisterPage';
 import { PatientPortalDashboardPage } from './pages/portal/PatientPortalDashboardPage';
+import { ReceptionQrCheckinPage } from './pages/checkin/ReceptionQrCheckinPage';
 
 // Dashboard
 import { DashboardPage } from './pages/dashboard/DashboardPage';
@@ -83,6 +84,7 @@ export const App: React.FC = () => {
                 <Route path="/portal/login" element={<PatientPortalLoginPage />} />
                 <Route path="/portal/register" element={<PatientPortalRegisterPage />} />
                 <Route path="/portal/dashboard" element={<PatientPortalDashboardPage />} />
+                <Route path="/checkin" element={<ReceptionQrCheckinPage />} />
 
                 {/* Protected Application Routes */}
                 <Route

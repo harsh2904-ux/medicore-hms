@@ -15,6 +15,8 @@ import { Tabs } from '../../components/ui/Tabs';
 import { MediCoreLogo } from '../../components/layout/MediCoreLogo';
 import { PrintInvoiceModal } from '../../components/billing/PrintInvoiceModal';
 import { PrintPrescriptionModal } from '../../components/clinical/PrintPrescriptionModal';
+import { PrintLabReportModal, PrintableLabReportData } from '../../components/clinical/PrintLabReportModal';
+import { PrintDischargeSummaryModal, PrintableDischargeSummaryData } from '../../components/clinical/PrintDischargeSummaryModal';
 import { BookPatientAppointmentModal } from '../../components/portal/BookPatientAppointmentModal';
 import { PrintAppointmentSlipModal } from '../../components/portal/PrintAppointmentSlipModal';
 import {
@@ -34,17 +36,21 @@ import {
   User,
   Clock,
   Building,
-  Bell
+  Bell,
+  MessageSquare
 } from 'lucide-react';
+import { useNotification } from '../../context/NotificationContext';
+import { communicationService } from '../../services/communicationService';
 
 const PORTAL_STORAGE_KEY = 'medicore_portal_patient';
 
 export const PatientPortalDashboardPage: React.FC = () => {
   const navigate = useNavigate();
+  const { showToast } = useNotification();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [activeTab, setActiveTab] = useState<'prescriptions' | 'lab' | 'billing' | 'appointments'>('prescriptions');
+  const [activeTab, setActiveTab] = useState<'prescriptions' | 'lab' | 'discharge' | 'billing' | 'appointments'>('prescriptions');
 
   // Notifications Popover State
   const [showPatientNotifs, setShowPatientNotifs] = useState(false);
@@ -79,6 +85,9 @@ export const PatientPortalDashboardPage: React.FC = () => {
   const [isPrintInvoiceOpen, setIsPrintInvoiceOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [isPrintRxOpen, setIsPrintRxOpen] = useState(false);
+  const [isPrintLabOpen, setIsPrintLabOpen] = useState(false);
+  const [selectedLabData, setSelectedLabData] = useState<PrintableLabReportData | null>(null);
+  const [isPrintDischargeOpen, setIsPrintDischargeOpen] = useState(false);
   const [isBookAptModalOpen, setIsBookAptModalOpen] = useState(false);
   const [selectedAptForSlip, setSelectedAptForSlip] = useState<Appointment | null>(null);
   const [isPrintSlipOpen, setIsPrintSlipOpen] = useState(false);
@@ -206,6 +215,7 @@ export const PatientPortalDashboardPage: React.FC = () => {
   const tabs = [
     { id: 'prescriptions', label: 'My Prescriptions', icon: <Pill className="w-4 h-4" /> },
     { id: 'lab', label: 'Diagnostic & Lab Reports', icon: <FlaskConical className="w-4 h-4" /> },
+    { id: 'discharge', label: 'Discharge Summaries', icon: <FileText className="w-4 h-4" /> },
     { id: 'billing', label: 'Invoices & Receipts', icon: <Receipt className="w-4 h-4" /> },
     { id: 'appointments', label: 'Appointments', icon: <Calendar className="w-4 h-4" /> },
   ];
@@ -462,13 +472,87 @@ export const PatientPortalDashboardPage: React.FC = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => window.print()}
-                    leftIcon={<Download className="w-3.5 h-3.5" />}
+                    onClick={() => {
+                      setSelectedLabData({
+                        orderId: report.id,
+                        testName: report.testName,
+                        specimenType: report.testName.includes('Lipid') ? 'Serum / Plasma' : 'Whole Blood (EDTA)',
+                        patientName: patient.fullName,
+                        patientMrn: patient.mrn,
+                        patientAge: patient.age,
+                        patientGender: patient.gender,
+                        orderedBy: 'Dr. Sarah Jenkins, MD',
+                        verifiedBy: 'Dr. Rajesh Mehta, MD (Pathology)',
+                        verifiedAt: report.date,
+                        parameters: report.testName.includes('Lipid')
+                          ? [
+                              { name: 'Total Cholesterol', value: '198', unit: 'mg/dL', referenceRange: '< 200 mg/dL', status: 'NORMAL' },
+                              { name: 'Triglycerides', value: '145', unit: 'mg/dL', referenceRange: '< 150 mg/dL', status: 'NORMAL' },
+                              { name: 'HDL Cholesterol', value: '48', unit: 'mg/dL', referenceRange: '> 40 mg/dL', status: 'NORMAL' },
+                              { name: 'LDL Cholesterol', value: '110', unit: 'mg/dL', referenceRange: '< 100 mg/dL', status: 'HIGH' },
+                            ]
+                          : [
+                              { name: 'Hemoglobin (Hb)', value: '13.8', unit: 'g/dL', referenceRange: '13.0 - 17.0 g/dL', status: 'NORMAL' },
+                              { name: 'Total Leukocyte Count (WBC)', value: '6,800', unit: '/μL', referenceRange: '4,000 - 11,000 /μL', status: 'NORMAL' },
+                              { name: 'Platelet Count', value: '245,000', unit: '/μL', referenceRange: '150,000 - 450,000 /μL', status: 'NORMAL' },
+                              { name: 'Packed Cell Volume (PCV)', value: '42.1', unit: '%', referenceRange: '40.0 - 50.0 %', status: 'NORMAL' },
+                            ],
+                        clinicalRemarks: 'Analyzer specimen verified. Biological parameters in physiological reference range. Digital NABL signature applied.'
+                      });
+                      setIsPrintLabOpen(true);
+                    }}
+                    leftIcon={<Download className="w-3.5 h-3.5 text-emerald-400" />}
                   >
                     Download PDF
                   </Button>
                 </div>
               ))}
+            </div>
+          </GlassCard>
+        )}
+
+        {/* TAB: Inpatient Discharge Summaries */}
+        {activeTab === 'discharge' && (
+          <GlassCard className="p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
+              <div>
+                <h2 className="text-base font-bold text-text-primary">Inpatient Hospital Stays & Discharge Summaries</h2>
+                <p className="text-xs text-text-muted">Certified hospital course records, surgical procedures, and discharge medications</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                      ADM-2026-9021
+                    </span>
+                    <h3 className="font-bold text-sm text-text-primary">
+                      Acute Coronary Syndrome (Unstable Angina) — Medical Management
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      Discharged Stable
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-text-secondary">
+                    Stay Duration: <span className="text-text-primary font-medium">Sep 12, 2026 – Sep 18, 2026 (6 Days)</span> • Ward: <strong className="text-text-primary">Cardiology Ward 4B (Bed 402)</strong>
+                  </p>
+                  <p className="text-[11px] text-text-muted">
+                    Attending Physician: <strong className="text-text-secondary">Dr. Sarah Jenkins, MD (Cardiology)</strong> • Medical Council Reg: #MCI-2018-84920
+                  </p>
+                </div>
+
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setIsPrintDischargeOpen(true)}
+                  leftIcon={<Download className="w-3.5 h-3.5" />}
+                >
+                  Download Summary PDF
+                </Button>
+              </div>
             </div>
           </GlassCard>
         )}
@@ -577,17 +661,39 @@ export const PatientPortalDashboardPage: React.FC = () => {
                       )}
                     </div>
 
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedAptForSlip(apt);
-                        setIsPrintSlipOpen(true);
-                      }}
-                      leftIcon={<Printer className="w-3.5 h-3.5 text-blue-400" />}
-                    >
-                      Print Entry Slip
-                    </Button>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedAptForSlip(apt);
+                          setIsPrintSlipOpen(true);
+                        }}
+                        leftIcon={<Printer className="w-3.5 h-3.5 text-blue-400" />}
+                      >
+                        Print Pass
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          await communicationService.sendAppointmentConfirmation({
+                            patientName: patient.fullName,
+                            phone: patient.phone,
+                            doctorName: apt.doctorName,
+                            department: apt.department,
+                            date: apt.date,
+                            time: apt.time,
+                            token: apt.tokenNumber || `OPD-${apt.id}`,
+                          });
+                          showToast(`Token Pass #${apt.tokenNumber || apt.id} dispatched via WhatsApp & SMS to ${patient.phone}`, 'success', 'Digital Pass Dispatched');
+                        }}
+                        leftIcon={<MessageSquare className="w-3.5 h-3.5 text-emerald-400" />}
+                      >
+                        Send to WhatsApp
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -634,6 +740,48 @@ export const PatientPortalDashboardPage: React.FC = () => {
           })),
           advice: 'Continue current medications, maintain low-sodium diet, and exercise 30 minutes daily.',
           followUpDate: 'After 30 Days',
+        }}
+      />
+
+      {/* Official Diagnostic Lab Report Modal */}
+      <PrintLabReportModal
+        isOpen={isPrintLabOpen}
+        onClose={() => setIsPrintLabOpen(false)}
+        data={selectedLabData}
+      />
+
+      {/* Official Inpatient Discharge Summary Modal */}
+      <PrintDischargeSummaryModal
+        isOpen={isPrintDischargeOpen}
+        onClose={() => setIsPrintDischargeOpen(false)}
+        data={{
+          admissionId: 'ADM-2026-9021',
+          patientName: patient.fullName,
+          patientMrn: patient.mrn,
+          patientAge: patient.age,
+          patientGender: patient.gender,
+          admissionDate: 'Sep 12, 2026 at 10:15 AM',
+          dischargeDate: 'Sep 18, 2026 at 02:30 PM',
+          department: 'Department of Cardiology & Critical Care',
+          attendingDoctor: 'Dr. Sarah Jenkins, MD (Cardiology)',
+          doctorLicense: 'MCI-2018-84920',
+          wardBed: 'Cardiology Ward 4B (Bed 402)',
+          diagnosis: 'Acute Coronary Syndrome (Unstable Angina) - Successfully Stabilized',
+          secondaryDiagnoses: ['Primary Essential Hypertension (Stage 2)', 'Mild Dyslipidemia'],
+          clinicalCourse: 'Patient presented with acute retrosternal chest tightness radiating to the left arm. Serial troponin-I and ECG confirmed unstable angina. Managed with dual antiplatelet therapy, high-intensity statin, beta-blocker, and ACE inhibitor. Coronary CT angiography revealed non-obstructive coronary plaques. Vitals stabilized nicely over 6-day stay.',
+          dischargeVitals: {
+            bp: '122/80 mmHg',
+            pulse: 72,
+            temp: '98.4 °F',
+            spo2: '99% on Room Air',
+          },
+          dischargeMedications: [
+            { name: 'Atorvastatin (Lipitor)', dosage: '40mg', frequency: '0 - 0 - 1 (Night)', duration: '90 Days', instructions: 'Take after dinner. Monitor lipid profile.' },
+            { name: 'Metoprolol Tartrate', dosage: '50mg', frequency: '1 - 0 - 1 (B/D)', duration: '30 Days', instructions: 'Take with or after breakfast and dinner.' },
+            { name: 'Aspirin (Ecosprin)', dosage: '75mg', frequency: '1 - 0 - 0 (Morning)', duration: '90 Days', instructions: 'Take immediately after morning meal.' },
+          ],
+          dietAdvice: 'Strict low-sodium (<2g/day) cardiac diet. Abstain from smoking, alcohol, and excessive caffeine. Regular aerobic walking 30 minutes daily after 2 weeks of rest.',
+          followUpDate: 'Oct 15, 2026 at 10:30 AM (OPD Chamber 204)',
         }}
       />
 

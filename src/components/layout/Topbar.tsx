@@ -12,8 +12,12 @@ import {
   ChevronRight,
   Shield,
   ExternalLink,
-  Database
+  Database,
+  QrCode,
+  MessageSquare
 } from 'lucide-react';
+import { ReceptionQrStandModal } from '../common/ReceptionQrStandModal';
+import { SmsWhatsAppDispatchModal } from '../common/SmsWhatsAppDispatchModal';
 
 interface TopbarProps {
   onOpenSidebar: () => void;
@@ -28,6 +32,8 @@ export const Topbar: React.FC<TopbarProps> = ({ onOpenSidebar }) => {
 
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showQrStand, setShowQrStand] = useState(false);
+  const [showSmsModal, setShowSmsModal] = useState(false);
 
   // Parse path breadcrumbs
   const pathParts = location.pathname.split('/').filter(Boolean);
@@ -118,6 +124,26 @@ export const Topbar: React.FC<TopbarProps> = ({ onOpenSidebar }) => {
           <span className="w-2 h-2 rounded-full bg-status-danger animate-ping" />
           <span>ER Triage</span>
         </Link>
+
+        {/* Reception Counter QR Stand Trigger */}
+        <button
+          onClick={() => setShowQrStand(true)}
+          className="p-2 rounded-xl text-text-muted hover:text-text-primary hover:bg-white/[0.06] transition-colors relative"
+          title="Reception Counter QR Stand (Scan to Join Queue)"
+          aria-label="Open Reception QR Stand"
+        >
+          <QrCode className="w-4 h-4 text-accent-primary" />
+        </button>
+
+        {/* SMS / WhatsApp Gateway Trigger */}
+        <button
+          onClick={() => setShowSmsModal(true)}
+          className="p-2 rounded-xl text-text-muted hover:text-text-primary hover:bg-white/[0.06] transition-colors relative"
+          title="SMS & WhatsApp Message Gateway"
+          aria-label="Open SMS and WhatsApp Gateway"
+        >
+          <MessageSquare className="w-4 h-4 text-emerald-400" />
+        </button>
 
         {/* Notifications Button & Dropdown */}
         <div className="relative">
@@ -244,6 +270,18 @@ export const Topbar: React.FC<TopbarProps> = ({ onOpenSidebar }) => {
           )}
         </div>
       </div>
+
+      {/* Reception Counter QR Stand Modal */}
+      <ReceptionQrStandModal
+        isOpen={showQrStand}
+        onClose={() => setShowQrStand(false)}
+      />
+
+      {/* SMS & WhatsApp Gateway Dispatcher Modal */}
+      <SmsWhatsAppDispatchModal
+        isOpen={showSmsModal}
+        onClose={() => setShowSmsModal(false)}
+      />
     </header>
   );
 };

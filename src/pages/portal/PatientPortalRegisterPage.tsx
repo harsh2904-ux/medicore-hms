@@ -19,8 +19,10 @@ import {
   ArrowRight,
   CheckCircle2,
   AlertCircle,
-  FileCheck
+  FileCheck,
+  Award
 } from 'lucide-react';
+import { AbhaVerificationModal, AbhaVerificationResult } from '../../components/common/AbhaVerificationModal';
 
 const PORTAL_STORAGE_KEY = 'medicore_portal_patient';
 
@@ -49,6 +51,8 @@ export const PatientPortalRegisterPage: React.FC = () => {
     chronicConditions: '',
   });
 
+  const [showAbhaModal, setShowAbhaModal] = useState(false);
+  const [abhaResult, setAbhaResult] = useState<AbhaVerificationResult | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -130,6 +134,45 @@ export const PatientPortalRegisterPage: React.FC = () => {
           {/* Registration Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             
+            {/* ABHA Digital Health ID (ABDM) Integration */}
+            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-orange-500/10 via-white/[0.02] to-emerald-500/10 border border-orange-500/25 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center text-orange-400 shrink-0">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-white">Ayushman Bharat ABHA ID</span>
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-orange-500/20 text-orange-300 border border-orange-500/30">
+                      ABDM M1
+                    </span>
+                  </div>
+                  {abhaResult ? (
+                    <p className="text-[11px] font-mono text-emerald-400 flex items-center gap-1 mt-0.5">
+                      <CheckCircle2 className="w-3 h-3" />
+                      Linked: {abhaResult.abhaNumber} ({abhaResult.abhaAddress})
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-white/50 mt-0.5">
+                      Link your 14-digit government health identity via Aadhaar OTP
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowAbhaModal(true)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0 transition-all ${
+                  abhaResult
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30'
+                    : 'bg-orange-600 hover:bg-orange-500 text-white shadow-md shadow-orange-950/40'
+                }`}
+              >
+                {abhaResult ? 'Verified ✓' : 'Link / Verify ABHA'}
+              </button>
+            </div>
+
             {/* Name Fields */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <Input
@@ -282,6 +325,21 @@ export const PatientPortalRegisterPage: React.FC = () => {
 
         </GlassCard>
       </div>
+
+      <AbhaVerificationModal
+        isOpen={showAbhaModal}
+        onClose={() => setShowAbhaModal(false)}
+        patientName={`${formData.firstName} ${formData.lastName}`.trim() || 'Valued Patient'}
+        patientPhone={formData.phone}
+        onSuccess={(result) => {
+          setAbhaResult(result);
+          setFormData(prev => ({
+            ...prev,
+            abhaId: result.abhaNumber
+          }));
+          showToast(`ABHA ID ${result.abhaNumber} linked successfully!`, 'success', 'ABHA Verified');
+        }}
+      />
     </div>
   );
 };

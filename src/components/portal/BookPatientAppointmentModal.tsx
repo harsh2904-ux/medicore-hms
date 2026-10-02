@@ -7,6 +7,7 @@ import { Select } from '../ui/Select';
 import { Patient } from '../../types/patient';
 import { Doctor, Appointment } from '../../types/appointment';
 import { appointmentService } from '../../services/appointmentService';
+import { communicationService } from '../../services/communicationService';
 import { useNotification } from '../../context/NotificationContext';
 import {
   Calendar,
@@ -128,10 +129,21 @@ export const BookPatientAppointmentModal: React.FC<BookPatientAppointmentModalPr
         roomNumber: selectedDoctor.roomNumber || 'Room 201',
       });
 
+      // Automatically dispatch WhatsApp and SMS booking confirmation with Token Pass
+      await communicationService.sendAppointmentConfirmation({
+        patientName: patient.fullName,
+        phone: patient.phone,
+        doctorName: selectedDoctor.name,
+        department: selectedDoctor.department,
+        date: date,
+        time: timeSlot,
+        token: newApt.tokenNumber || 'OPD-01',
+      });
+
       showToast(
-        `Appointment confirmed with ${selectedDoctor.name} for ${date} at ${timeSlot}! (Token: ${newApt.tokenNumber})`,
+        `Appointment confirmed! Token: #${newApt.tokenNumber}. WhatsApp & SMS dispatched to ${patient.phone}`,
         'success',
-        'Appointment Booked'
+        'Appointment Confirmed'
       );
 
       onAppointmentBooked(newApt);

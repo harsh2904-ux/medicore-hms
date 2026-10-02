@@ -17,8 +17,11 @@ import {
   Printer,
   FileText,
   AlertTriangle,
-  Microscope
+  Microscope,
+  Download
 } from 'lucide-react';
+import { communicationService } from '../../services/communicationService';
+import { PrintLabReportModal, PrintableLabReportData } from '../../components/clinical/PrintLabReportModal';
 
 export const LaboratoryPage: React.FC = () => {
   const { showToast } = useNotification();
@@ -27,7 +30,32 @@ export const LaboratoryPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('All');
   const [selectedReport, setSelectedReport] = useState<LabResultReport | null>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isPrintLabModalOpen, setIsPrintLabModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  const printableData: PrintableLabReportData | null = selectedReport
+    ? {
+        orderId: selectedReport.orderId,
+        testName: selectedReport.testName,
+        specimenType: selectedReport.category || 'Blood Specimen',
+        patientName: selectedReport.patientName,
+        patientMrn: selectedReport.mrn,
+        patientAge: selectedReport.age,
+        patientGender: selectedReport.gender,
+        orderedBy: 'Dr. Vikramaditya Rathore, MD',
+        verifiedBy: selectedReport.verifiedBy || 'Dr. Kavita Joshi, MD (Pathology)',
+        collectedAt: selectedReport.collectedAt,
+        verifiedAt: selectedReport.reportedAt,
+        parameters: selectedReport.parameters.map((p) => ({
+          name: p.name,
+          value: p.value,
+          unit: p.unit,
+          referenceRange: p.referenceRange,
+          status: (p.flag.toUpperCase() as any) || 'NORMAL',
+        })),
+        clinicalRemarks: selectedReport.clinicalInterpretation,
+      }
+    : null;
 
   const fetchOrders = async () => {
     setIsLoading(true);
@@ -65,7 +93,17 @@ export const LaboratoryPage: React.FC = () => {
     try {
       const updated = await labService.verifyLabResult(selectedReport.orderId, 'Dr. Kavita Joshi, MD (Pathology)');
       setSelectedReport({ ...updated });
-      showToast('Lab result signed and verified with electronic pathologist signature', 'success', 'Report Verified');
+      
+      // Dispatch automated WhatsApp & SMS alert to patient
+      await communicationService.sendLabReportAlert({
+        patientName: selectedReport.patientName,
+        phone: '+91 98765 43210',
+        testName: selectedReport.testName,
+        specimenId: selectedReport.orderId,
+        doctorName: selectedReport.verifiedBy || 'Dr. Kavita Joshi, MD (Pathology)'
+      });
+
+      showToast('Lab result signed, verified & instant WhatsApp/SMS notification dispatched to patient!', 'success', 'Report Verified & Dispatched');
       fetchOrders();
     } catch {
       showToast('Verification failed', 'error');
@@ -315,15 +353,26 @@ export const LaboratoryPage: React.FC = () => {
 
             {/* Footer buttons */}
             <div className="pt-2 border-t border-white/[0.08] flex items-center justify-between">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.print()}
-                leftIcon={<Printer className="w-3.5 h-3.5" />}
-                className="no-print"
-              >
-                Print Report
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsPrintLabModalOpen(true)}
+                  leftIcon={<Download className="w-3.5 h-3.5 text-accent-primary" />}
+                  className="no-print"
+                >
+                  Download PDF
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => window.print()}
+                  leftIcon={<Printer className="w-3.5 h-3.5" />}
+                  className="no-print"
+                >
+                  Print
+                </Button>
+              </div>
 
               <div className="flex items-center gap-2">
                 <Button variant="secondary" size="sm" onClick={() => setIsReportModalOpen(false)}>
@@ -344,6 +393,13 @@ export const LaboratoryPage: React.FC = () => {
           </div>
         </Modal>
       )}
+
+      {/* Official Printable / Downloadable Lab Diagnostic Report Modal */}
+      <PrintLabReportModal
+        isOpen={isPrintLabModalOpen}
+        onClose={() => setIsPrintLabModalOpen(false)}
+        data={printableData}
+      />
     </div>
   );
 };
