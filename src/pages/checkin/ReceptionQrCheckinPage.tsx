@@ -14,8 +14,9 @@ import {
   ShieldCheck,
   Printer
 } from 'lucide-react';
-import { communicationService } from '../../services/communicationService';
+import { communicationService, openWhatsAppDirect } from '../../services/communicationService';
 import { Link } from 'react-router-dom';
+import { QrCodeView } from '../../components/common/QrCodeView';
 
 export const ReceptionQrCheckinPage: React.FC = () => {
   const [step, setStep] = useState<'FORM' | 'CONFIRMED'>('FORM');
@@ -224,8 +225,16 @@ export const ReceptionQrCheckinPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Token QR Code for Fast Reception Counter Verification */}
+              <div className="flex flex-col items-center justify-center p-3 my-4 bg-white rounded-2xl w-fit mx-auto shadow-lg border border-white/20">
+                <QrCodeView value={`https://medicore.health/token/${tokenNumber}`} size={120} alt="Token Pass QR" />
+                <span className="text-[10px] font-mono text-slate-900 font-bold mt-1">
+                  TOKEN #{tokenNumber}
+                </span>
+              </div>
+
               {/* Instant WhatsApp / SMS confirmation banner */}
-              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-left flex items-start gap-2.5 text-xs text-emerald-300">
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-left flex items-start gap-2.5 text-xs text-emerald-300 mb-3">
                 <MessageSquare className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                 <div>
                   <strong className="text-emerald-200">WhatsApp & SMS Dispatched</strong>
@@ -234,6 +243,19 @@ export const ReceptionQrCheckinPage: React.FC = () => {
                   </p>
                 </div>
               </div>
+
+              {/* Interactive Open in WhatsApp (wa.me) Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  const waText = `🏥 *MediCore Hospital Check-In Confirmed*\n\nHello *${patientName}*,\nYour OPD Queue Token is: *#${tokenNumber}*\nDoctor: *${doctorName}* (Room 204)\nDepartment: *${department}*\nEstimated Wait: ~${estimatedWait} mins\n\nShow this message at the OPD nursing station.`;
+                  openWhatsAppDirect(phone, waText);
+                }}
+                className="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 transition-all cursor-pointer"
+              >
+                <MessageSquare className="w-4 h-4 fill-white" />
+                <span>Open in WhatsApp (wa.me)</span>
+              </button>
             </div>
 
             <div className="flex gap-2">

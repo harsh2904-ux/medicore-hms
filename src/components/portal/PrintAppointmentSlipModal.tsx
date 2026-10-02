@@ -3,6 +3,7 @@ import { Appointment } from '../../types/appointment';
 import { Patient } from '../../types/patient';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
+import { QrCodeView } from '../common/QrCodeView';
 import {
   Printer,
   Calendar,
@@ -202,9 +203,17 @@ export const PrintAppointmentSlipModal: React.FC<PrintAppointmentSlipModalProps>
               </p>
             </div>
 
-            <div className="text-center font-mono text-[9px] text-gray-400">
-              <div className="tracking-[4px] font-black text-gray-700 text-sm">||| | |||| | ||||| ||| |</div>
-              <span>MC-APT-{appointment.id}</span>
+            <div className="flex items-center gap-3">
+              <QrCodeView
+                value={`https://medicore.health/q/${appointment.tokenNumber || appointment.id}`}
+                size={48}
+                darkColor="#1e3a8a"
+                alt="Token QR"
+              />
+              <div className="text-right font-mono text-[9px] text-gray-400">
+                <div className="tracking-[3px] font-black text-gray-700 text-xs">||| | |||| | |||||</div>
+                <span>MC-APT-{appointment.id}</span>
+              </div>
             </div>
           </div>
 

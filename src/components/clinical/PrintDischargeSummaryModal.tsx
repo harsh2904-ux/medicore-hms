@@ -11,6 +11,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { QrCodeView } from '../common/QrCodeView';
 
 export interface PrintableDischargeSummaryData {
   admissionId: string;
@@ -264,25 +265,13 @@ export const PrintDischargeSummaryModal: React.FC<PrintDischargeSummaryModalProp
 
           {/* Signature & Verification QR */}
           <div className="pt-6 border-t border-dashed border-gray-300 flex justify-between items-end text-xs">
-            <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 p-2.5 rounded-xl">
-              <svg className="w-16 h-16 shrink-0 bg-white p-1 rounded-lg border border-gray-300" viewBox="0 0 100 100">
-                <rect width="100" height="100" fill="white" />
-                <rect x="5" y="5" width="26" height="26" fill="#4338ca" />
-                <rect x="9" y="9" width="18" height="18" fill="white" />
-                <rect x="13" y="13" width="10" height="10" fill="#4338ca" />
-                <rect x="69" y="5" width="26" height="26" fill="#4338ca" />
-                <rect x="73" y="9" width="18" height="18" fill="white" />
-                <rect x="77" y="13" width="10" height="10" fill="#4338ca" />
-                <rect x="5" y="69" width="26" height="26" fill="#4338ca" />
-                <rect x="9" y="73" width="18" height="18" fill="white" />
-                <rect x="13" y="77" width="10" height="10" fill="#4338ca" />
-                <circle cx="45" cy="20" r="4" fill="#4338ca" />
-                <circle cx="45" cy="45" r="4" fill="#4338ca" />
-                <circle cx="20" cy="45" r="4" fill="#4338ca" />
-                <circle cx="70" cy="45" r="4" fill="#4338ca" />
-                <circle cx="45" cy="75" r="4" fill="#4338ca" />
-                <circle cx="70" cy="75" r="4" fill="#4338ca" />
-              </svg>
+            <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 p-2 rounded-xl">
+              <QrCodeView
+                value={`https://medicore.health/discharge/${data.patientMrn || 'DISCH-9941'}`}
+                size={56}
+                darkColor="#4338ca"
+                alt="EMR Verification QR"
+              />
               <div className="text-[10px] text-gray-600 leading-tight">
                 <span className="font-bold text-gray-900 block flex items-center gap-1">
                   <ShieldCheck className="w-3 h-3 text-indigo-600" />

@@ -77,6 +77,7 @@ export const BookPatientAppointmentModal: React.FC<BookPatientAppointmentModalPr
   const [visitType, setVisitType] = useState<'Routine Checkup' | 'First Visit' | 'Follow-up' | 'Teleconsult'>('Follow-up');
   const [reason, setReason] = useState('');
   const [notes, setNotes] = useState('');
+  const [autoWhatsApp, setAutoWhatsApp] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -138,6 +139,7 @@ export const BookPatientAppointmentModal: React.FC<BookPatientAppointmentModalPr
         date: date,
         time: timeSlot,
         token: newApt.tokenNumber || 'OPD-01',
+        autoOpenWhatsApp: autoWhatsApp,
       });
 
       showToast(
@@ -341,6 +343,24 @@ export const BookPatientAppointmentModal: React.FC<BookPatientAppointmentModalPr
             onChange={e => setNotes(e.target.value)}
           />
         </div>
+
+        {/* WhatsApp Dispatch Option */}
+        <label className="flex items-center gap-2.5 cursor-pointer text-xs select-none p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/15 transition-colors">
+          <input
+            type="checkbox"
+            checked={autoWhatsApp}
+            onChange={e => setAutoWhatsApp(e.target.checked)}
+            className="w-4 h-4 rounded text-emerald-600 bg-white/10 border-white/20 focus:ring-0 shrink-0"
+          />
+          <div className="flex-1">
+            <span className="font-semibold block text-emerald-200">
+              Open Token Pass on WhatsApp (wa.me)
+            </span>
+            <span className="text-[11px] text-emerald-200/70 block">
+              Instantly transmits queue token & doctor chamber to {patient.phone}
+            </span>
+          </div>
+        </label>
 
         {/* Booking Summary Box */}
         <div className="p-3.5 rounded-xl bg-accent-primary/[0.06] border border-accent-primary/20 flex items-center justify-between text-xs">

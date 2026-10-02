@@ -1,6 +1,6 @@
 /**
  * MediCore HMS — Multi-Channel Communication Service
- * Supports WhatsApp Business (Gupshup/Meta API), Fast2SMS (India), and Twilio (Global SMS).
+ * Supports WhatsApp Business (Gupshup/Meta API / WhatsApp Direct wa.me), Fast2SMS (India), and Twilio (Global SMS).
  */
 
 export interface MessageLog {
@@ -15,9 +15,38 @@ export interface MessageLog {
   provider: 'Gupshup (WhatsApp Business)' | 'Fast2SMS (India)' | 'Twilio (Global)';
   tokenNumber?: string;
   referenceUrl?: string;
+  whatsappUrl?: string;
 }
 
 const STORAGE_KEY = 'medicore_communication_logs';
+
+/**
+ * Normalizes phone numbers to clean international E.164 digits without symbols
+ * e.g., "+91 98765 43210" -> "919876543210"
+ */
+export function sanitizePhoneNumber(phone: string): string {
+  const digits = phone.replace(/[^0-9]/g, '');
+  if (digits.length === 10) {
+    return '91' + digits; // Default Indian Country Code for 10-digit mobile numbers
+  }
+  return digits || '919876543210';
+}
+
+/**
+ * Generates an official WhatsApp Click-to-Chat deep link (wa.me)
+ */
+export function getWhatsAppShareUrl(phone: string, message: string): string {
+  const cleanPhone = sanitizePhoneNumber(phone);
+  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+}
+
+/**
+ * Opens WhatsApp directly in a new browser tab or WhatsApp app
+ */
+export function openWhatsAppDirect(phone: string, message: string): Window | null {
+  const url = getWhatsAppShareUrl(phone, message);
+  return window.open(url, '_blank', 'noopener,noreferrer');
+}
 
 const INITIAL_LOGS: MessageLog[] = [
   {
@@ -31,7 +60,8 @@ const INITIAL_LOGS: MessageLog[] = [
     sentAt: new Date(Date.now() - 3600000).toISOString(),
     provider: 'Gupshup (WhatsApp Business)',
     tokenNumber: 'OPD-04',
-    referenceUrl: 'http://localhost:3000/portal/dashboard?tab=appointments'
+    referenceUrl: 'http://localhost:3000/portal/dashboard?tab=appointments',
+    whatsappUrl: getWhatsAppShareUrl('+91 98765 43210', '🏥 MediCore Hospital: Appointment confirmed with Dr. Sarah Jenkins (Cardiology). Token #OPD-04.')
   },
   {
     id: 'msg-102',
@@ -55,7 +85,8 @@ const INITIAL_LOGS: MessageLog[] = [
     status: 'DELIVERED',
     sentAt: new Date(Date.now() - 14400000).toISOString(),
     provider: 'Gupshup (WhatsApp Business)',
-    referenceUrl: 'http://localhost:3000/portal/dashboard?tab=prescriptions'
+    referenceUrl: 'http://localhost:3000/portal/dashboard?tab=prescriptions',
+    whatsappUrl: getWhatsAppShareUrl('+91 91234 56789', 'MediCore Pharmacy: Prescription issued.')
   }
 ];
 
@@ -74,8 +105,8 @@ function getStoredLogs(): MessageLog[] {
 
 function saveLog(log: MessageLog) {
   try {
-    const existing = getStoredLogs();
-    const updated = [log, ...existing];
+    const current = getStoredLogs();
+    const updated = [log, ...current].slice(0, 50); // keep last 50
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   } catch (e) {
     console.error('Failed to persist message log', e);
@@ -98,8 +129,11 @@ export const communicationService = {
     date: string;
     time: string;
     token: string;
+    autoOpenWhatsApp?: boolean;
   }): Promise<{ whatsapp: MessageLog; sms: MessageLog }> {
     const cleanPhone = data.phone.startsWith('+') ? data.phone : `+91 ${data.phone}`;
+    const waText = `🏥 *MediCore Apex Hospital — Appointment Confirmed*\n\nDear *${data.patientName}*,\nYour consultation with *${data.doctorName}* (${data.department}) is confirmed.\n\n📅 *Date/Time*: ${data.date} at ${data.time}\n🎫 *Queue Token*: *#${data.token}*\n\n📍 *Room*: OPD Chamber 204\nPlease arrive 10 minutes prior with your digital token. Helpline: +91 80 4000 5000.`;
+    const waUrl = getWhatsAppShareUrl(cleanPhone, waText);
 
     // WhatsApp Message
     const whatsappLog: MessageLog = {
@@ -108,12 +142,13 @@ export const communicationService = {
       recipient: cleanPhone,
       recipientName: data.patientName,
       title: 'Appointment Booking Confirmed',
-      body: `🏥 *MediCore Apex Hospital — Appointment Confirmed*\n\nDear *${data.patientName}*,\nYour consultation with *${data.doctorName}* (${data.department}) is confirmed.\n\n📅 *Date/Time*: ${data.date} at ${data.time}\n🎫 *Queue Token*: *#${data.token}*\n\n📍 *Room*: OPD Chamber 204\nPlease arrive 10 minutes prior with your digital token. Helpline: +91 80 4000 5000.`,
+      body: waText,
       status: 'DELIVERED',
       sentAt: new Date().toISOString(),
       provider: 'Gupshup (WhatsApp Business)',
       tokenNumber: data.token,
-      referenceUrl: 'http://localhost:3000/portal/dashboard'
+      referenceUrl: 'http://localhost:3000/portal/dashboard',
+      whatsappUrl: waUrl
     };
 
     // Fast2SMS Message
@@ -133,6 +168,10 @@ export const communicationService = {
     saveLog(whatsappLog);
     saveLog(smsLog);
 
+    if (data.autoOpenWhatsApp) {
+      openWhatsAppDirect(cleanPhone, waText);
+    }
+
     return { whatsapp: whatsappLog, sms: smsLog };
   },
 
@@ -145,22 +184,32 @@ export const communicationService = {
     testName: string;
     specimenId: string;
     doctorName?: string;
+    autoOpenWhatsApp?: boolean;
   }): Promise<MessageLog> {
     const cleanPhone = data.phone.startsWith('+') ? data.phone : `+91 ${data.phone}`;
+    const waText = `🔬 *MediCore Diagnostics — Lab Report Verified*\n\nDear *${data.patientName}*,\nYour laboratory report for *${data.testName}* (Specimen: ${data.specimenId}) has been verified by the consultant pathologist.\n\n📥 *Download PDF Report*: https://medicore.health/reports/${data.specimenId}\n\nYou may also access this from your MediCore Patient Portal dashboard.`;
+    const waUrl = getWhatsAppShareUrl(cleanPhone, waText);
+
     const log: MessageLog = {
       id: `wa-lab-${Date.now()}`,
       channel: 'WHATSAPP',
       recipient: cleanPhone,
       recipientName: data.patientName,
       title: 'Diagnostic Report Ready',
-      body: `🔬 *MediCore Diagnostics — Lab Report Verified*\n\nDear *${data.patientName}*,\nYour laboratory report for *${data.testName}* (Specimen: ${data.specimenId}) has been verified by the consultant pathologist.\n\n📥 *Download PDF Report*: https://medicore.health/reports/${data.specimenId}\n\nYou may also access this from your MediCore Patient Portal dashboard.`,
+      body: waText,
       status: 'DELIVERED',
       sentAt: new Date().toISOString(),
       provider: 'Gupshup (WhatsApp Business)',
-      referenceUrl: 'http://localhost:3000/portal/dashboard?tab=lab'
+      referenceUrl: 'http://localhost:3000/portal/dashboard?tab=lab',
+      whatsappUrl: waUrl
     };
 
     saveLog(log);
+
+    if (data.autoOpenWhatsApp) {
+      openWhatsAppDirect(cleanPhone, waText);
+    }
+
     return log;
   },
 
@@ -173,22 +222,32 @@ export const communicationService = {
     doctorName: string;
     medicineCount: number;
     prescriptionId: string;
+    autoOpenWhatsApp?: boolean;
   }): Promise<MessageLog> {
     const cleanPhone = data.phone.startsWith('+') ? data.phone : `+91 ${data.phone}`;
+    const waText = `💊 *MediCore Hospital — Digital Prescription*\n\nDear *${data.patientName}*,\nDr. *${data.doctorName}* has generated your digital prescription containing ${data.medicineCount} prescribed medications.\n\n📄 *View & Download Rx*: https://medicore.health/rx/${data.prescriptionId}\n\nPresent this message at the hospital pharmacy counter for instant medicine dispensing.`;
+    const waUrl = getWhatsAppShareUrl(cleanPhone, waText);
+
     const log: MessageLog = {
       id: `wa-rx-${Date.now()}`,
       channel: 'WHATSAPP',
       recipient: cleanPhone,
       recipientName: data.patientName,
       title: 'Digital Prescription Issued',
-      body: `💊 *MediCore Hospital — Digital Prescription*\n\nDear *${data.patientName}*,\nDr. *${data.doctorName}* has generated your digital prescription containing ${data.medicineCount} prescribed medications.\n\n📄 *View & Download Rx*: https://medicore.health/rx/${data.prescriptionId}\n\nPresent this message at the hospital pharmacy counter for instant medicine dispensing.`,
+      body: waText,
       status: 'DELIVERED',
       sentAt: new Date().toISOString(),
       provider: 'Gupshup (WhatsApp Business)',
-      referenceUrl: 'http://localhost:3000/portal/dashboard?tab=prescriptions'
+      referenceUrl: 'http://localhost:3000/portal/dashboard?tab=prescriptions',
+      whatsappUrl: waUrl
     };
 
     saveLog(log);
+
+    if (data.autoOpenWhatsApp) {
+      openWhatsAppDirect(cleanPhone, waText);
+    }
+
     return log;
   },
 
@@ -200,9 +259,12 @@ export const communicationService = {
     phone: string,
     recipientName: string,
     message: string,
-    title: string = 'Hospital Notification'
+    title: string = 'Hospital Notification',
+    autoOpenWhatsApp: boolean = false
   ): Promise<MessageLog> {
     const cleanPhone = phone.startsWith('+') ? phone : `+91 ${phone}`;
+    const waUrl = channel === 'WHATSAPP' ? getWhatsAppShareUrl(cleanPhone, message) : undefined;
+
     const log: MessageLog = {
       id: `custom-${Date.now()}`,
       channel,
@@ -212,10 +274,16 @@ export const communicationService = {
       body: message,
       status: 'DELIVERED',
       sentAt: new Date().toISOString(),
-      provider: channel === 'WHATSAPP' ? 'Gupshup (WhatsApp Business)' : 'Fast2SMS (India)'
+      provider: channel === 'WHATSAPP' ? 'Gupshup (WhatsApp Business)' : 'Fast2SMS (India)',
+      whatsappUrl: waUrl
     };
 
     saveLog(log);
+
+    if (channel === 'WHATSAPP' && autoOpenWhatsApp) {
+      openWhatsAppDirect(cleanPhone, message);
+    }
+
     return log;
   }
 };

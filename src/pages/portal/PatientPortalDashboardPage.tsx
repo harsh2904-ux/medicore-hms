@@ -678,6 +678,7 @@ export const PatientPortalDashboardPage: React.FC = () => {
                         variant="outline"
                         size="sm"
                         onClick={async () => {
+                          const token = apt.tokenNumber || `OPD-${apt.id}`;
                           await communicationService.sendAppointmentConfirmation({
                             patientName: patient.fullName,
                             phone: patient.phone,
@@ -685,9 +686,10 @@ export const PatientPortalDashboardPage: React.FC = () => {
                             department: apt.department,
                             date: apt.date,
                             time: apt.time,
-                            token: apt.tokenNumber || `OPD-${apt.id}`,
+                            token: token,
+                            autoOpenWhatsApp: true
                           });
-                          showToast(`Token Pass #${apt.tokenNumber || apt.id} dispatched via WhatsApp & SMS to ${patient.phone}`, 'success', 'Digital Pass Dispatched');
+                          showToast(`Token Pass #${token} dispatched & opened in WhatsApp!`, 'success', 'WhatsApp Pass Launched');
                         }}
                         leftIcon={<MessageSquare className="w-3.5 h-3.5 text-emerald-400" />}
                       >
