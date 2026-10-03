@@ -7,6 +7,7 @@ import { Button } from '../../components/ui/Button';
 import { Select } from '../../components/ui/Select';
 import { Modal } from '../../components/ui/Modal';
 import { useNotification } from '../../context/NotificationContext';
+import { BedSanitizationModal } from '../../components/ipd/BedSanitizationModal';
 import {
   BedDouble,
   Building,
@@ -14,7 +15,9 @@ import {
   Sparkles,
   Wrench,
   Lock,
-  User
+  User,
+  AlertTriangle,
+  ShieldCheck
 } from 'lucide-react';
 
 export const BedsPage: React.FC = () => {
@@ -24,6 +27,8 @@ export const BedsPage: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [selectedBed, setSelectedBed] = useState<Bed | null>(null);
+  const [sanitizingBed, setSanitizingBed] = useState<Bed | null>(null);
+  const [isSanitizingModalOpen, setIsSanitizingModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchBeds = async () => {
@@ -63,6 +68,8 @@ export const BedsPage: React.FC = () => {
         return <User className="w-4 h-4 text-accent-primary" />;
       case 'Cleaning':
         return <Sparkles className="w-4 h-4 text-status-warning" />;
+      case 'Sanitization Needed':
+        return <AlertTriangle className="w-4 h-4 text-amber-400 animate-pulse" />;
       case 'Maintenance':
         return <Wrench className="w-4 h-4 text-status-danger" />;
       case 'Reserved':
@@ -78,6 +85,8 @@ export const BedsPage: React.FC = () => {
         return 'border-accent-primary/40 hover:border-accent-primary/70';
       case 'Cleaning':
         return 'border-status-warning/40 hover:border-status-warning/70';
+      case 'Sanitization Needed':
+        return 'border-amber-400/50 hover:border-amber-400/80 bg-amber-500/[0.03]';
       case 'Maintenance':
         return 'border-status-danger/40 hover:border-status-danger/70';
       case 'Reserved':
@@ -98,9 +107,10 @@ export const BedsPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-text-muted">
+        <div className="flex items-center gap-2 text-xs text-text-muted flex-wrap">
           <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-status-success" /> Available</span>
           <span className="flex items-center gap-1.5 ml-2"><span className="w-2.5 h-2.5 rounded-full bg-accent-primary" /> Occupied</span>
+          <span className="flex items-center gap-1.5 ml-2"><span className="w-2.5 h-2.5 rounded-full bg-amber-400" /> Sanitization Needed</span>
           <span className="flex items-center gap-1.5 ml-2"><span className="w-2.5 h-2.5 rounded-full bg-status-warning" /> Cleaning</span>
           <span className="flex items-center gap-1.5 ml-2"><span className="w-2.5 h-2.5 rounded-full bg-status-danger" /> Maintenance</span>
         </div>
@@ -138,13 +148,14 @@ export const BedsPage: React.FC = () => {
               { value: 'All', label: 'All Statuses' },
               { value: 'Available', label: 'Available' },
               { value: 'Occupied', label: 'Occupied' },
-              { value: 'Cleaning', label: 'Cleaning' },
+              { value: 'Sanitization Needed', label: 'Sanitization Needed' },
+              { value: 'Cleaning', label: 'Cleaning In Progress' },
               { value: 'Reserved', label: 'Reserved' },
               { value: 'Maintenance', label: 'Maintenance' },
             ]}
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
-            className="py-1 text-xs min-w-[130px]"
+            className="py-1 text-xs min-w-[160px]"
           />
         </div>
 
@@ -237,7 +248,7 @@ export const BedsPage: React.FC = () => {
 
             {/* Quick status change buttons */}
             <div>
-              <span className="text-xs font-semibold text-text-secondary block mb-2">Change Bed Status</span>
+              <span className="text-xs font-semibold text-text-secondary block mb-2">Hospital Bed Workflow Actions</span>
               <div className="grid grid-cols-2 gap-2">
                 <Button
                   variant="outline"
@@ -250,10 +261,23 @@ export const BedsPage: React.FC = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleUpdateStatus(selectedBed.id, 'Cleaning')}
-                  leftIcon={<Sparkles className="w-3.5 h-3.5 text-status-warning" />}
+                  onClick={() => handleUpdateStatus(selectedBed.id, 'Sanitization Needed')}
+                  leftIcon={<AlertTriangle className="w-3.5 h-3.5 text-amber-400" />}
                 >
-                  Mark for Cleaning
+                  Needs Sanitization
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    setSanitizingBed(selectedBed);
+                    setIsSanitizingModalOpen(true);
+                    setSelectedBed(null);
+                  }}
+                  leftIcon={<Sparkles className="w-3.5 h-3.5" />}
+                  className="col-span-2"
+                >
+                  Open NABH Sterilization Checklist
                 </Button>
                 <Button
                   variant="outline"
@@ -276,6 +300,21 @@ export const BedsPage: React.FC = () => {
           </div>
         </Modal>
       )}
+
+      {/* Terminal Sanitization & Housekeeping Checklist Modal */}
+      <BedSanitizationModal
+        isOpen={isSanitizingModalOpen}
+        onClose={() => {
+          setIsSanitizingModalOpen(false);
+          setSanitizingBed(null);
+        }}
+        bed={sanitizingBed}
+        onCompleteSanitization={async (bedId, housekeeperName) => {
+          await operationsService.updateBedStatus(bedId, 'Available');
+          showToast(`Bed sterilized and cleared by ${housekeeperName}. Marked Available!`, 'success', 'Nurse Clearance Complete');
+          fetchBeds();
+        }}
+      />
     </div>
   );
 };

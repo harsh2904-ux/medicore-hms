@@ -14,7 +14,8 @@ import {
   SkipForward,
   CheckCircle2,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Tv
 } from 'lucide-react';
 
 export const QueuePage: React.FC = () => {
@@ -89,7 +90,16 @@ export const QueuePage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open('/display/opd', '_blank')}
+            leftIcon={<Tv className="w-3.5 h-3.5 text-purple-400" />}
+          >
+            Open Waiting Room TV Board
+          </Button>
+
           <Button
             variant="secondary"
             size="sm"

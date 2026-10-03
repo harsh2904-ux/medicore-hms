@@ -1,4 +1,4 @@
-export type BedStatus = 'Available' | 'Occupied' | 'Reserved' | 'Cleaning' | 'Maintenance';
+export type BedStatus = 'Available' | 'Occupied' | 'Reserved' | 'Cleaning' | 'Sanitization Needed' | 'Maintenance';
 
 export interface Bed {
   id: string; // BED-ICU-04
@@ -15,6 +15,9 @@ export interface Bed {
   admittedDate?: string;
   attendingDoctor?: string;
   dailyRate: number;
+  lastSanitizedAt?: string;
+  sanitizedBy?: string;
+  sanitizationNotes?: string;
 }
 
 export interface InpatientAdmission {

@@ -19,6 +19,8 @@ import { PrintLabReportModal, PrintableLabReportData } from '../../components/cl
 import { PrintDischargeSummaryModal, PrintableDischargeSummaryData } from '../../components/clinical/PrintDischargeSummaryModal';
 import { BookPatientAppointmentModal } from '../../components/portal/BookPatientAppointmentModal';
 import { PrintAppointmentSlipModal } from '../../components/portal/PrintAppointmentSlipModal';
+import { PaymentGatewayModal } from '../../components/billing/PaymentGatewayModal';
+import { AiLabExplainerModal } from '../../components/portal/AiLabExplainerModal';
 import {
   Heart,
   Pill,
@@ -37,7 +39,9 @@ import {
   Clock,
   Building,
   Bell,
-  MessageSquare
+  MessageSquare,
+  Brain,
+  CreditCard
 } from 'lucide-react';
 import { useNotification } from '../../context/NotificationContext';
 import { communicationService } from '../../services/communicationService';
@@ -91,6 +95,12 @@ export const PatientPortalDashboardPage: React.FC = () => {
   const [isBookAptModalOpen, setIsBookAptModalOpen] = useState(false);
   const [selectedAptForSlip, setSelectedAptForSlip] = useState<Appointment | null>(null);
   const [isPrintSlipOpen, setIsPrintSlipOpen] = useState(false);
+  
+  // Payment Gateway and AI Explainer States
+  const [isPaymentGatewayOpen, setIsPaymentGatewayOpen] = useState(false);
+  const [selectedInvoiceForPayment, setSelectedInvoiceForPayment] = useState<Invoice | null>(null);
+  const [isAiLabOpen, setIsAiLabOpen] = useState(false);
+  const [selectedLabForAi, setSelectedLabForAi] = useState<{ reportName: string; testDate?: string } | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem(PORTAL_STORAGE_KEY);
@@ -469,42 +479,59 @@ export const PatientPortalDashboardPage: React.FC = () => {
                     <p className="text-[11px] text-text-muted">{report.department} • Authorized on {report.date}</p>
                   </div>
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedLabData({
-                        orderId: report.id,
-                        testName: report.testName,
-                        specimenType: report.testName.includes('Lipid') ? 'Serum / Plasma' : 'Whole Blood (EDTA)',
-                        patientName: patient.fullName,
-                        patientMrn: patient.mrn,
-                        patientAge: patient.age,
-                        patientGender: patient.gender,
-                        orderedBy: 'Dr. Sarah Jenkins, MD',
-                        verifiedBy: 'Dr. Rajesh Mehta, MD (Pathology)',
-                        verifiedAt: report.date,
-                        parameters: report.testName.includes('Lipid')
-                          ? [
-                              { name: 'Total Cholesterol', value: '198', unit: 'mg/dL', referenceRange: '< 200 mg/dL', status: 'NORMAL' },
-                              { name: 'Triglycerides', value: '145', unit: 'mg/dL', referenceRange: '< 150 mg/dL', status: 'NORMAL' },
-                              { name: 'HDL Cholesterol', value: '48', unit: 'mg/dL', referenceRange: '> 40 mg/dL', status: 'NORMAL' },
-                              { name: 'LDL Cholesterol', value: '110', unit: 'mg/dL', referenceRange: '< 100 mg/dL', status: 'HIGH' },
-                            ]
-                          : [
-                              { name: 'Hemoglobin (Hb)', value: '13.8', unit: 'g/dL', referenceRange: '13.0 - 17.0 g/dL', status: 'NORMAL' },
-                              { name: 'Total Leukocyte Count (WBC)', value: '6,800', unit: '/μL', referenceRange: '4,000 - 11,000 /μL', status: 'NORMAL' },
-                              { name: 'Platelet Count', value: '245,000', unit: '/μL', referenceRange: '150,000 - 450,000 /μL', status: 'NORMAL' },
-                              { name: 'Packed Cell Volume (PCV)', value: '42.1', unit: '%', referenceRange: '40.0 - 50.0 %', status: 'NORMAL' },
-                            ],
-                        clinicalRemarks: 'Analyzer specimen verified. Biological parameters in physiological reference range. Digital NABL signature applied.'
-                      });
-                      setIsPrintLabOpen(true);
-                    }}
-                    leftIcon={<Download className="w-3.5 h-3.5 text-emerald-400" />}
-                  >
-                    Download PDF
-                  </Button>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedLabForAi({
+                          reportName: report.testName,
+                          testDate: report.date,
+                        });
+                        setIsAiLabOpen(true);
+                      }}
+                      leftIcon={<Brain className="w-3.5 h-3.5 text-accent-primary" />}
+                    >
+                      AI Health Summary
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedLabData({
+                          orderId: report.id,
+                          testName: report.testName,
+                          specimenType: report.testName.includes('Lipid') ? 'Serum / Plasma' : 'Whole Blood (EDTA)',
+                          patientName: patient.fullName,
+                          patientMrn: patient.mrn,
+                          patientAge: patient.age,
+                          patientGender: patient.gender,
+                          orderedBy: 'Dr. Sarah Jenkins, MD',
+                          verifiedBy: 'Dr. Rajesh Mehta, MD (Pathology)',
+                          verifiedAt: report.date,
+                          parameters: report.testName.includes('Lipid')
+                            ? [
+                                { name: 'Total Cholesterol', value: '198', unit: 'mg/dL', referenceRange: '< 200 mg/dL', status: 'NORMAL' },
+                                { name: 'Triglycerides', value: '145', unit: 'mg/dL', referenceRange: '< 150 mg/dL', status: 'NORMAL' },
+                                { name: 'HDL Cholesterol', value: '48', unit: 'mg/dL', referenceRange: '> 40 mg/dL', status: 'NORMAL' },
+                                { name: 'LDL Cholesterol', value: '110', unit: 'mg/dL', referenceRange: '< 100 mg/dL', status: 'HIGH' },
+                              ]
+                            : [
+                                { name: 'Hemoglobin (Hb)', value: '13.8', unit: 'g/dL', referenceRange: '13.0 - 17.0 g/dL', status: 'NORMAL' },
+                                { name: 'Total Leukocyte Count (WBC)', value: '6,800', unit: '/μL', referenceRange: '4,000 - 11,000 /μL', status: 'NORMAL' },
+                                { name: 'Platelet Count', value: '245,000', unit: '/μL', referenceRange: '150,000 - 450,000 /μL', status: 'NORMAL' },
+                                { name: 'Packed Cell Volume (PCV)', value: '42.1', unit: '%', referenceRange: '40.0 - 50.0 %', status: 'NORMAL' },
+                              ],
+                          clinicalRemarks: 'Analyzer specimen verified. Biological parameters in physiological reference range. Digital NABL signature applied.'
+                        });
+                        setIsPrintLabOpen(true);
+                      }}
+                      leftIcon={<Download className="w-3.5 h-3.5 text-emerald-400" />}
+                    >
+                      Download PDF
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -580,17 +607,33 @@ export const PatientPortalDashboardPage: React.FC = () => {
                     </p>
                   </div>
 
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedInvoice(inv);
-                      setIsPrintInvoiceOpen(true);
-                    }}
-                    leftIcon={<Printer className="w-3.5 h-3.5 text-blue-400" />}
-                  >
-                    Print Tax Invoice PDF
-                  </Button>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {inv.status !== 'Paid' && (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedInvoiceForPayment(inv);
+                          setIsPaymentGatewayOpen(true);
+                        }}
+                        leftIcon={<CreditCard className="w-3.5 h-3.5" />}
+                      >
+                        Pay Online (UPI / Card)
+                      </Button>
+                    )}
+
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedInvoice(inv);
+                        setIsPrintInvoiceOpen(true);
+                      }}
+                      leftIcon={<Printer className="w-3.5 h-3.5 text-blue-400" />}
+                    >
+                      Print Tax Invoice PDF
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -802,6 +845,33 @@ export const PatientPortalDashboardPage: React.FC = () => {
         appointment={selectedAptForSlip}
         patient={patient}
       />
+
+      {/* Online Payment Gateway (UPI / QR / Cards) */}
+      <PaymentGatewayModal
+        isOpen={isPaymentGatewayOpen}
+        onClose={() => {
+          setIsPaymentGatewayOpen(false);
+          setSelectedInvoiceForPayment(null);
+        }}
+        invoice={selectedInvoiceForPayment}
+        onPaymentSuccess={(paidInv) => {
+          setInvoices(prev => prev.map(i => i.id === paidInv.id ? { ...i, status: 'Paid', amountPaid: i.totalAmount, balanceDue: 0 } : i));
+        }}
+      />
+
+      {/* AI Lab Report Explainer Modal */}
+      {selectedLabForAi && (
+        <AiLabExplainerModal
+          isOpen={isAiLabOpen}
+          onClose={() => {
+            setIsAiLabOpen(false);
+            setSelectedLabForAi(null);
+          }}
+          reportName={selectedLabForAi.reportName}
+          testDate={selectedLabForAi.testDate}
+          patientName={patient.fullName}
+        />
+      )}
     </div>
   );
 };

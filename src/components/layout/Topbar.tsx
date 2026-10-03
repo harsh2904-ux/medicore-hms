@@ -14,10 +14,13 @@ import {
   ExternalLink,
   Database,
   QrCode,
-  MessageSquare
+  MessageSquare,
+  Tv,
+  Siren
 } from 'lucide-react';
 import { ReceptionQrStandModal } from '../common/ReceptionQrStandModal';
 import { SmsWhatsAppDispatchModal } from '../common/SmsWhatsAppDispatchModal';
+import { TriggerEmergencyModal } from '../emergency/TriggerEmergencyModal';
 
 interface TopbarProps {
   onOpenSidebar: () => void;
@@ -34,6 +37,7 @@ export const Topbar: React.FC<TopbarProps> = ({ onOpenSidebar }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showQrStand, setShowQrStand] = useState(false);
   const [showSmsModal, setShowSmsModal] = useState(false);
+  const [showEmergencyModal, setShowEmergencyModal] = useState(false);
 
   // Parse path breadcrumbs
   const pathParts = location.pathname.split('/').filter(Boolean);
@@ -118,12 +122,26 @@ export const Topbar: React.FC<TopbarProps> = ({ onOpenSidebar }) => {
         </div>
 
         {/* Emergency Alert Indicator */}
-        <Link
-          to="/emergency"
-          className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-status-danger/10 border border-status-danger/25 text-status-danger text-xs font-semibold hover:bg-status-danger/15 transition-colors"
+        {/* Emergency Alert Indicator & Broadcast Trigger */}
+        <button
+          onClick={() => setShowEmergencyModal(true)}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-status-danger/15 border border-status-danger/30 text-status-danger text-xs font-bold hover:bg-status-danger/25 transition-all shadow-sm"
+          title="Trigger Hospital-Wide Emergency Broadcast (Code Blue / Code Red)"
         >
-          <span className="w-2 h-2 rounded-full bg-status-danger animate-ping" />
-          <span>ER Triage</span>
+          <Siren className="w-3.5 h-3.5 animate-pulse" />
+          <span className="hidden sm:inline">Code Alert</span>
+        </button>
+
+        {/* OPD Waiting Room TV Display Link */}
+        <Link
+          to="/display/opd"
+          target="_blank"
+          rel="noreferrer"
+          className="p-2 rounded-xl text-text-muted hover:text-white hover:bg-white/[0.06] transition-colors relative"
+          title="Open Waiting Room TV Board (Fullscreen Digital Signage)"
+          aria-label="Open Waiting Room TV Board"
+        >
+          <Tv className="w-4 h-4 text-purple-400" />
         </Link>
 
         {/* Reception Counter QR Stand Trigger */}
@@ -283,6 +301,12 @@ export const Topbar: React.FC<TopbarProps> = ({ onOpenSidebar }) => {
     <SmsWhatsAppDispatchModal
       isOpen={showSmsModal}
       onClose={() => setShowSmsModal(false)}
+    />
+
+    {/* Hospital-Wide Emergency Broadcast Modal */}
+    <TriggerEmergencyModal
+      isOpen={showEmergencyModal}
+      onClose={() => setShowEmergencyModal(false)}
     />
   </>
 );

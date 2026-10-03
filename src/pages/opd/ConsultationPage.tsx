@@ -26,9 +26,15 @@ import {
   Save,
   ArrowLeft,
   CalendarCheck,
-  Printer
+  Printer,
+  Brain,
+  Sparkles,
+  ShieldAlert
 } from 'lucide-react';
 import { PrintPrescriptionModal } from '../../components/clinical/PrintPrescriptionModal';
+import { clinicalSafetyEngine, ClinicalSafetyReport } from '../../utils/clinicalSafetyEngine';
+import { ClinicalSafetyAlertModal } from '../../components/clinical/ClinicalSafetyAlertModal';
+import { aiMedicalService } from '../../services/aiMedicalService';
 
 export const ConsultationPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -39,6 +45,13 @@ export const ConsultationPage: React.FC = () => {
   const [consultation, setConsultation] = useState<ConsultationRecord | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isPrintRxModalOpen, setIsPrintRxModalOpen] = useState(false);
+
+  // Clinical Safety & AI States
+  const [safetyReport, setSafetyReport] = useState<ClinicalSafetyReport | null>(null);
+  const [isSafetyModalOpen, setIsSafetyModalOpen] = useState(false);
+  const [pendingMedicine, setPendingMedicine] = useState<PrescriptionMedicine | null>(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiPresetSelected, setAiPresetSelected] = useState<string | null>(null);
 
   // Form states
   const [chiefComplaint, setChiefComplaint] = useState('');
@@ -129,9 +142,81 @@ export const ConsultationPage: React.FC = () => {
       durationDays: medDuration,
       instructions: medInstructions,
     };
+
+    // Clinical Safety Guard Check (Allergies + Drug-Drug Interactions)
+    const report = clinicalSafetyEngine.evaluatePrescriptionSafety(
+      patient?.allergies,
+      prescriptions.map(p => p.medicineName),
+      medName
+    );
+
+    if (report.hasAlert) {
+      setSafetyReport(report);
+      setPendingMedicine(newMed);
+      setIsSafetyModalOpen(true);
+      return;
+    }
+
     setPrescriptions(prev => [...prev, newMed]);
     setMedName('');
     showToast(`Added ${newMed.medicineName} to prescription`, 'info');
+  };
+
+  const handleSafetyOverride = (rationale: string) => {
+    if (!pendingMedicine) return;
+    const overriddenMed: PrescriptionMedicine = {
+      ...pendingMedicine,
+      instructions: `${pendingMedicine.instructions} [Clinical Override: ${rationale}]`,
+    };
+    setPrescriptions(prev => [...prev, overriddenMed]);
+    setPendingMedicine(null);
+    setSafetyReport(null);
+    setMedName('');
+    showToast(`Added ${overriddenMed.medicineName} with clinical safety override logged.`, 'warning', 'Override Logged');
+  };
+
+  const handleApplyAiPreset = async (presetId: string) => {
+    setIsAiLoading(true);
+    setAiPresetSelected(presetId);
+    try {
+      const plan = await aiMedicalService.generateClinicalPlan(presetId, chiefComplaint);
+      
+      // Auto-fill diagnosis with ICD-10
+      setProvisionalDiagnosis(`${plan.provisionalDiagnosis} [ICD-10: ${plan.icd10Code}]`);
+      
+      // Auto-fill SOAP Clinical Notes
+      setClinicalNotes(
+        `SOAP CLINICAL EVALUATION:\n` +
+        `• Subjective: ${plan.soapNotes.subjective}\n` +
+        `• Objective: ${plan.soapNotes.objective}\n` +
+        `• Assessment: ${plan.soapNotes.assessment}\n` +
+        `• Plan: ${plan.soapNotes.plan}`
+      );
+
+      // Auto-fill medications
+      const newMeds: PrescriptionMedicine[] = plan.recommendedMedications.map((m, idx) => ({
+        id: `rx-ai-${Date.now()}-${idx}`,
+        medicineName: m.name,
+        genericName: m.name,
+        dosage: m.dosage,
+        route: m.route,
+        frequency: m.frequency,
+        durationDays: m.duration,
+        instructions: m.instructions,
+      }));
+      setPrescriptions(newMeds);
+
+      // Auto-fill lab & radiology orders
+      setLabOrders(plan.recommendedLabs);
+      setRadiologyOrders(plan.recommendedRadiology);
+      setFollowUpInstructions(plan.lifestyleAdvice);
+
+      showToast(`Applied ${plan.provisionalDiagnosis} AI clinical bundle`, 'success', 'AI Scribe Active');
+    } catch {
+      showToast('Failed to generate AI plan', 'error');
+    } finally {
+      setIsAiLoading(false);
+    }
   };
 
   const handleRemoveMedicine = (medId: string) => {
@@ -307,6 +392,59 @@ export const ConsultationPage: React.FC = () => {
 
         {/* CENTER COLUMN: Clinical Documentation (5 cols) */}
         <div className="lg:col-span-5 space-y-4">
+          
+          {/* MediCore AI Clinical Scribe & Prescription Bundler */}
+          <GlassCard className="p-4 bg-gradient-to-r from-accent-primary/10 via-purple-500/10 to-transparent border-accent-primary/30">
+            <div className="flex items-center justify-between mb-2.5">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-accent-primary/20 text-accent-primary">
+                  <Brain className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                    MediCore AI Clinical Scribe
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300">
+                      GPT-4o Medical / ICD-10
+                    </span>
+                  </h3>
+                </div>
+              </div>
+              {isAiLoading && (
+                <div className="flex items-center gap-1 text-[11px] text-accent-primary font-mono animate-pulse">
+                  <Sparkles className="w-3.5 h-3.5 animate-spin" /> Drafting Plan...
+                </div>
+              )}
+            </div>
+
+            <p className="text-[11px] text-text-muted mb-3">
+              One-click standard evidence-based treatment bundles & SOAP clinical auto-coding:
+            </p>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+              {[
+                { id: 'acute-bronchitis', label: 'Acute Bronchitis' },
+                { id: 'type-2-diabetes', label: 'Type 2 Diabetes' },
+                { id: 'hypertension-stage2', label: 'Stage 2 HTN' },
+                { id: 'acute-gastroenteritis', label: 'Gastroenteritis' },
+              ].map(preset => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  disabled={isAiLoading}
+                  onClick={() => handleApplyAiPreset(preset.id)}
+                  className={`px-2.5 py-2 rounded-xl text-[11px] font-semibold text-center border transition-all truncate ${
+                    aiPresetSelected === preset.id
+                      ? 'bg-accent-primary text-white border-accent-primary shadow-md shadow-accent-primary/30'
+                      : 'bg-white/[0.04] text-text-secondary hover:text-white border-white/[0.08] hover:bg-white/[0.08]'
+                  }`}
+                  title={`Apply ${preset.label} Treatment Bundle`}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </GlassCard>
+
           <GlassCard className="p-5 space-y-4">
             <h2 className="text-sm font-semibold text-text-primary pb-2 border-b border-white/[0.08] flex items-center gap-2">
               <Stethoscope className="w-4 h-4 text-accent-primary" />
@@ -635,6 +773,18 @@ export const ConsultationPage: React.FC = () => {
           advice: clinicalNotes || 'Follow medication schedule carefully and drink plenty of fluids.',
           followUpDate: followUpDate || 'After 7 Days',
         }}
+      />
+
+      {/* Clinical Drug-Drug Interaction & Allergy Safety Guard Modal */}
+      <ClinicalSafetyAlertModal
+        isOpen={isSafetyModalOpen}
+        onClose={() => {
+          setIsSafetyModalOpen(false);
+          setPendingMedicine(null);
+          setSafetyReport(null);
+        }}
+        report={safetyReport}
+        onOverride={handleSafetyOverride}
       />
     </div>
   );

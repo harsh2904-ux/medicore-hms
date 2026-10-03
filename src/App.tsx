@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
+import { EmergencyAlertProvider } from './context/EmergencyAlertContext';
 import { CommandPaletteProvider } from './context/CommandPaletteContext';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { AppLayout } from './components/layout/AppLayout';
@@ -14,6 +15,7 @@ import { PatientPortalLoginPage } from './pages/portal/PatientPortalLoginPage';
 import { PatientPortalRegisterPage } from './pages/portal/PatientPortalRegisterPage';
 import { PatientPortalDashboardPage } from './pages/portal/PatientPortalDashboardPage';
 import { ReceptionQrCheckinPage } from './pages/checkin/ReceptionQrCheckinPage';
+import { OpdDisplayBoardPage } from './pages/display/OpdDisplayBoardPage';
 
 // Dashboard
 import { DashboardPage } from './pages/dashboard/DashboardPage';
@@ -73,18 +75,21 @@ export const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <NotificationProvider>
-          <CommandPaletteProvider>
-            <BrowserRouter>
-              <Routes>
-                {/* Public Auth & Patient Portal Routes */}
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
-                <Route path="/portal" element={<PatientPortalLoginPage />} />
-                <Route path="/portal/login" element={<PatientPortalLoginPage />} />
-                <Route path="/portal/register" element={<PatientPortalRegisterPage />} />
-                <Route path="/portal/dashboard" element={<PatientPortalDashboardPage />} />
-                <Route path="/checkin" element={<ReceptionQrCheckinPage />} />
+        <EmergencyAlertProvider>
+          <NotificationProvider>
+            <CommandPaletteProvider>
+              <BrowserRouter>
+                <Routes>
+                  {/* Public Auth, Display & Patient Portal Routes */}
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/register" element={<RegisterPage />} />
+                  <Route path="/portal" element={<PatientPortalLoginPage />} />
+                  <Route path="/portal/login" element={<PatientPortalLoginPage />} />
+                  <Route path="/portal/register" element={<PatientPortalRegisterPage />} />
+                  <Route path="/portal/dashboard" element={<PatientPortalDashboardPage />} />
+                  <Route path="/checkin" element={<ReceptionQrCheckinPage />} />
+                  <Route path="/display/opd" element={<OpdDisplayBoardPage />} />
+                  <Route path="/waiting-room" element={<Navigate to="/display/opd" replace />} />
 
                 {/* Protected Application Routes */}
                 <Route
@@ -161,8 +166,9 @@ export const App: React.FC = () => {
             </BrowserRouter>
           </CommandPaletteProvider>
         </NotificationProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+      </EmergencyAlertProvider>
+    </AuthProvider>
+  </QueryClientProvider>
   );
 };
 

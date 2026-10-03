@@ -12,6 +12,7 @@ import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { useNotification } from '../../context/NotificationContext';
 import { PrintInvoiceModal } from '../../components/billing/PrintInvoiceModal';
+import { PaymentGatewayModal } from '../../components/billing/PaymentGatewayModal';
 import {
   CreditCard,
   Receipt,
@@ -21,7 +22,8 @@ import {
   CheckCircle2,
   Plus,
   ShieldCheck,
-  TrendingUp
+  TrendingUp,
+  QrCode
 } from 'lucide-react';
 import {
   BarChart,
@@ -46,6 +48,8 @@ export const BillingPage: React.FC = () => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [selectedPrintInvoice, setSelectedPrintInvoice] = useState<Invoice | null>(null);
+  const [isOnlinePayModalOpen, setIsOnlinePayModalOpen] = useState(false);
+  const [onlinePayInvoice, setOnlinePayInvoice] = useState<Invoice | null>(null);
 
   // Record payment form
   const [paymentInvoiceNum, setPaymentInvoiceNum] = useState('');
@@ -268,15 +272,30 @@ export const BillingPage: React.FC = () => {
                           View Bill
                         </Button>
                         {inv.balanceDue > 0 && (
-                          <Button
-                            size="sm"
-                            variant="primary"
-                            onClick={() => handleOpenPaymentModal(inv)}
-                            leftIcon={<CreditCard className="w-3.5 h-3.5" />}
-                            className="py-1 text-xs"
-                          >
-                            Pay Due
-                          </Button>
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setOnlinePayInvoice(inv);
+                                setIsOnlinePayModalOpen(true);
+                              }}
+                              leftIcon={<QrCode className="w-3.5 h-3.5 text-accent-primary" />}
+                              className="py-1 text-xs"
+                              title="Instant Patient UPI Dynamic QR Payment"
+                            >
+                              UPI QR
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="primary"
+                              onClick={() => handleOpenPaymentModal(inv)}
+                              leftIcon={<CreditCard className="w-3.5 h-3.5" />}
+                              className="py-1 text-xs"
+                            >
+                              Record Pay
+                            </Button>
+                          </>
                         )}
                       </div>
                     </td>
@@ -581,6 +600,19 @@ export const BillingPage: React.FC = () => {
         isOpen={isPrintModalOpen}
         onClose={() => setIsPrintModalOpen(false)}
         invoice={selectedPrintInvoice}
+      />
+
+      {/* Online UPI & Card Payment Gateway Modal */}
+      <PaymentGatewayModal
+        isOpen={isOnlinePayModalOpen}
+        onClose={() => {
+          setIsOnlinePayModalOpen(false);
+          setOnlinePayInvoice(null);
+        }}
+        invoice={onlinePayInvoice}
+        onPaymentSuccess={() => {
+          fetchBillingData();
+        }}
       />
     </div>
   );
