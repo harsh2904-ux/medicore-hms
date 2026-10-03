@@ -54,7 +54,7 @@ if %errorlevel% equ 0 (
         ) else (
             start /b "" %PG_CTL% start >nul 2>&1
         )
-        timeout /t 3 /nobreak >nul
+        ping 127.0.0.1 -n 4 >nul
     ) else (
         echo [WARNING] PostgreSQL binary not found automatically.
         echo           Please ensure PostgreSQL service is running on port 5432.
@@ -79,7 +79,7 @@ if %errorlevel% equ 0 (
     if exist "%~dp0backend\target\medicore-hms-1.0.0-SNAPSHOT.jar" (
         echo [*] Starting Spring Boot REST API on port 8080...
         start "MediCore Backend (Port 8080)" cmd /c "cd /d %~dp0 && %JAVA_EXE% -jar backend\target\medicore-hms-1.0.0-SNAPSHOT.jar"
-        timeout /t 6 /nobreak >nul
+        ping 127.0.0.1 -n 7 >nul
     ) else (
         echo [ERROR] Could not build or locate backend\target\medicore-hms-1.0.0-SNAPSHOT.jar
         echo         Please run 'mvn clean package -DskipTests' inside the backend directory.
@@ -102,7 +102,7 @@ if %errorlevel% equ 0 (
     )
     echo [*] Starting Frontend UI on port 3000...
     start "MediCore Frontend (Port 3000)" cmd /c "cd /d %~dp0 && npm run dev"
-    timeout /t 3 /nobreak >nul
+    ping 127.0.0.1 -n 4 >nul
 )
 
 echo.

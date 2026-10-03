@@ -21,6 +21,7 @@ import { BookPatientAppointmentModal } from '../../components/portal/BookPatient
 import { PrintAppointmentSlipModal } from '../../components/portal/PrintAppointmentSlipModal';
 import { PaymentGatewayModal } from '../../components/billing/PaymentGatewayModal';
 import { AiLabExplainerModal } from '../../components/portal/AiLabExplainerModal';
+import { AiClinicalTriageBot } from '../../components/portal/AiClinicalTriageBot';
 import {
   Heart,
   Pill,
@@ -41,7 +42,8 @@ import {
   Bell,
   MessageSquare,
   Brain,
-  CreditCard
+  CreditCard,
+  Sparkles
 } from 'lucide-react';
 import { useNotification } from '../../context/NotificationContext';
 import { communicationService } from '../../services/communicationService';
@@ -659,6 +661,30 @@ export const PatientPortalDashboardPage: React.FC = () => {
               </Button>
             </div>
 
+            {/* 24/7 AI Clinical Triage Quick Help Banner */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-accent-primary/15 via-indigo-600/10 to-purple-600/10 border border-accent-primary/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-accent-primary/20 text-accent-primary border border-accent-primary/30">
+                  <Brain className="w-5 h-5 animate-pulse" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                    Unsure which specialist to consult?
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-accent-primary/20 text-accent-primary font-bold">
+                      24/7 AI Triage
+                    </span>
+                  </h4>
+                  <p className="text-xs text-text-secondary">
+                    Describe your symptoms in natural words; AI will grade urgency (Red / Yellow / Green) and book you with 1 click.
+                  </p>
+                </div>
+              </div>
+              <div className="text-[11px] font-semibold text-accent-primary shrink-0 flex items-center gap-1 bg-white/[0.04] px-3 py-1.5 rounded-xl border border-white/[0.08]">
+                <span>Chat with AI Bot (Bottom-Right)</span>
+                <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+              </div>
+            </div>
+
             {appointments.length === 0 ? (
               <div className="text-center py-12 px-4 rounded-2xl bg-white/[0.02] border border-dashed border-white/[0.1] space-y-3">
                 <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center mx-auto">
@@ -872,6 +898,18 @@ export const PatientPortalDashboardPage: React.FC = () => {
           patientName={patient.fullName}
         />
       )}
+
+      {/* 24/7 AI Clinical Triage & 1-Click Booking Bot Widget */}
+      <AiClinicalTriageBot
+        patient={patient}
+        onAppointmentBooked={() => {
+          if (patient) loadPatientData(patient);
+        }}
+        onOpenAppointmentSlip={(apt) => {
+          setSelectedAptForSlip(apt);
+          setIsPrintSlipOpen(true);
+        }}
+      />
     </div>
   );
 };
